@@ -33,5 +33,9 @@ This project is open for **non-commercial tinkering and experimentation**. Pull 
 
 Licensed under the [Polyform Noncommercial License](https://polyformproject.org/licenses/noncommercial/1.0.0/). You may use, modify, and share this work **for noncommercial purposes only**.
 
+## Funding
+
+If you find this project useful, please consider [sponsoring the team](https://solar.bboonstra.dev/).
+
 ---
 Conner Israel, Ben Boonstra, and the SOLAR Research Team · 2025
