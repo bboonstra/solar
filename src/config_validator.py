@@ -9,6 +9,8 @@ import logging
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
+import yaml
+
 
 class ConfigValidator:
     """Validates configuration dictionaries against expected schemas."""
@@ -209,18 +211,17 @@ def validate_configuration_files(config_path: Path, env_path: Path) -> bool:
     Returns:
         True if all validations pass, False otherwise
     """
-    import yaml
-
     validator = ConfigValidator()
     logger = logging.getLogger(__name__)
     all_valid = True
 
     # Validate main config
     try:
-        with open(config_path, "r") as f:
+        with open(config_path, "r", encoding="utf-8") as f:
             config = yaml.safe_load(f)
 
         is_valid, errors, warnings = validator.validate_config(config)
+        all_valid = all_valid and is_valid
 
         if errors:
             logger.error(f"Configuration validation errors in {config_path}:")
@@ -242,10 +243,11 @@ def validate_configuration_files(config_path: Path, env_path: Path) -> bool:
 
     # Validate environment config
     try:
-        with open(env_path, "r") as f:
+        with open(env_path, "r", encoding="utf-8") as f:
             env_config = yaml.safe_load(f)
 
         is_valid, errors, warnings = validator.validate_environment_config(env_config)
+        all_valid = all_valid and is_valid
 
         if errors:
             logger.error(f"Environment configuration errors in {env_path}:")

@@ -148,11 +148,11 @@ class PowerMonitorDemo:
             if status["last_reading"]:
                 reading = status["last_reading"]
                 print("\nLast Reading:")
-                print(f"  Voltage:      {reading['voltage']:.2f} V")
-                print(f"  Current:      {reading['current']:.3f} A")
-                print(f"  Power:        {reading['power']:.2f} W")
+                print(f"  Voltage:      {reading.voltage:.2f} V")
+                print(f"  Current:      {reading.current:.3f} A")
+                print(f"  Power:        {reading.power:.2f} W")
                 print(
-                    f"  Timestamp:    {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(reading['timestamp']))}"
+                    f"  Timestamp:    {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(reading.timestamp))}"
                 )
             else:
                 print("\nNo readings taken yet")
