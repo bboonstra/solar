@@ -3,6 +3,17 @@
 
 # on dev machine (default), use:
 fake_rpi @ git+https://github.com/sn4k3/FakeRPi@0f30d320d5f715d8a4fb94e7105448508586ae94
+astroid==3.3.10
+dill==0.4.0
+isort==6.0.1
+mccabe==0.7.0
+mypy==1.16.0
+mypy_extensions==1.1.0
+numpy==2.2.6
+pandas==2.2.3
+pathspec==0.12.1
+platformdirs==4.3.8
+pylint==3.3.7
 pyserial==3.5
 python-dateutil==2.9.0.post0
 pytz==2025.2
@@ -10,11 +21,8 @@ PyYAML==6.0.2
 setuptools==80.9.0
 six==1.17.0
 smbus2==0.5.0
+tomlkit==0.13.2
+types-PyYAML==6.0.12.20250516
+typing_extensions==4.13.2
 tzdata==2025.2
 wheel==0.45.1
-
-# Power monitoring with INA219 sensor
-adafruit-circuitpython-ina219==3.4.15
-
-# Colorized logging
-colorlog==6.9.0

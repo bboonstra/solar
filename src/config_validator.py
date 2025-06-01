@@ -74,7 +74,12 @@ class ConfigValidator:
         return len(self.errors) == 0, self.errors, self.warnings
 
     def _validate_gpio_config(self, gpio_config: Dict[str, Any]) -> None:
-        """Validate GPIO configuration section."""
+        """
+        Validate GPIO configuration section.
+
+        Args:
+            gpio_config: Dictionary containing GPIO configuration
+        """
         # Validate GPIO pins if specified
         for key, value in gpio_config.items():
             if "pin" in key.lower():
@@ -88,7 +93,12 @@ class ConfigValidator:
                     )
 
     def _validate_ina219_config(self, ina219_config: Dict[str, Any]) -> None:
-        """Validate INA219 sensor configuration."""
+        """
+        Validate INA219 sensor configuration.
+
+        Args:
+            ina219_config: Dictionary containing INA219 sensor configuration
+        """
         # Check required fields
         if "enabled" not in ina219_config:
             self.warnings.append("INA219 'enabled' field missing, defaulting to True")
@@ -134,7 +144,12 @@ class ConfigValidator:
             )
 
     def _validate_application_config(self, app_config: Dict[str, Any]) -> None:
-        """Validate application configuration."""
+        """
+        Validate application configuration.
+
+        Args:
+            app_config: Dictionary containing application configuration
+        """
         # Check threaded_runners
         if "threaded_runners" in app_config:
             if not isinstance(app_config["threaded_runners"], bool):
@@ -150,7 +165,12 @@ class ConfigValidator:
                     self.errors.append(f"Application '{interval_key}' must be positive")
 
     def _validate_logging_config(self, logging_config: Dict[str, Any]) -> None:
-        """Validate logging configuration."""
+        """
+        Validate logging configuration.
+
+        Args:
+            logging_config: Dictionary containing logging configuration
+        """
         # Validate log level
         if "level" in logging_config:
             valid_levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]

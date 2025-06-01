@@ -114,7 +114,7 @@ class RunnerManager:
 
         try:
             runner_class = self._runner_classes[runner_type]
-            runner = runner_class(self.config, self.production)
+            runner = runner_class(runner_name, self.config, self.production)
 
             if not runner.enabled:
                 self.logger.info(f"Runner '{runner_name}' is disabled in configuration")

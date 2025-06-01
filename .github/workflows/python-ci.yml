@@ -40,7 +40,7 @@ jobs:
 
       - name: Import sort check with isort
         run: |
-          isort --check-only --diff src/ tests/
+          isort --check-only --diff --profile black src/ tests/
 
       - name: Type check with mypy
         run: |
