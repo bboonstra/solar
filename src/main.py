@@ -12,13 +12,57 @@ SCRIPT_DIR = Path(__file__).parent.parent  # Go up one level from src/ to projec
 
 
 def setup_logging(config: Dict[str, Any]) -> logging.Logger:
-    """Configure logging based on configuration."""
+    """Configure logging with colorized output based on configuration."""
     log_level = config.get("log_level", "INFO").upper()
-    logging.basicConfig(
-        level=getattr(logging, log_level),
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-    )
+    use_colors = config.get("colorized_logging", True)
+
+    try:
+        if use_colors:
+            import colorlog
+
+            # Create a colorized formatter
+            formatter = colorlog.ColoredFormatter(
+                "%(log_color)s%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+                datefmt="%Y-%m-%d %H:%M:%S",
+                log_colors={
+                    "DEBUG": "purple",
+                    "INFO": "blue",
+                    "WARNING": "yellow",
+                    "ERROR": "orange",
+                    "CRITICAL": "red,bg_white",
+                },
+                secondary_log_colors={},
+                style="%",
+            )
+
+            # Get the root logger and clear any existing handlers
+            root_logger = logging.getLogger()
+            if root_logger.handlers:
+                for handler in root_logger.handlers:
+                    root_logger.removeHandler(handler)
+
+            # Create console handler with the colorized formatter
+            handler = colorlog.StreamHandler()
+            handler.setFormatter(formatter)
+
+            # Configure logging
+            logging.basicConfig(level=getattr(logging, log_level), handlers=[handler])
+        else:
+            # Use standard logging when colors are disabled
+            raise ImportError("Colorized logging disabled in configuration")
+
+    except ImportError:
+        # Fallback to standard logging if colorlog is not available or disabled
+        logging.basicConfig(
+            level=getattr(logging, log_level),
+            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
+        )
+        if use_colors:
+            print(
+                "Note: colorlog not installed - using standard logging. Install with: pip install colorlog"
+            )
+
     return logging.getLogger(__name__)
 
 
@@ -147,7 +191,7 @@ def main() -> None:
         logger.error(f"Could not import INA219PowerMonitor: {e}")
         logger.info("Make sure the sensors module is properly installed")
     except SensorReadError as sre_init:  # Catch SensorReadError during initialization
-        logger.error(
+        logger.critical(
             f"Failed to initialize INA219 Power Monitor due to sensor error: {sre_init}"
         )
         logger.info(

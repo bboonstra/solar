@@ -21,3 +21,4 @@ ina219:
 # Other configuration options
 debug: true
 log_level: "DEBUG"
+colorized_logging: true

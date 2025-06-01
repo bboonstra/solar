@@ -15,3 +15,6 @@ wheel==0.45.1
 
 # Power monitoring with INA219 sensor
 adafruit-circuitpython-ina219==3.4.15
+
+# Colorized logging
+colorlog==6.8.2
