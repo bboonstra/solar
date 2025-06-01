@@ -4,6 +4,9 @@ import time
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+# Import the specific error for better handling
+from sensors.ina219_power_monitor import SensorReadError
+
 # Get the directory where this script is located
 SCRIPT_DIR = Path(__file__).parent.parent  # Go up one level from src/ to project root
 
@@ -113,11 +116,22 @@ def main() -> None:
 
                 # Check if we're in a healthy state
                 if not power_monitor.is_healthy():
-                    logger.warning("Power monitor unhealthy!")
+                    logger.warning("Power monitor reported as unhealthy!")
 
                 # Wait before next reading
                 time.sleep(power_monitor.measurement_interval)
 
+            except SensorReadError as sre:
+                logger.error(f"Sensor read error during monitoring loop: {sre}")
+                logger.info(
+                    "This might indicate a hardware issue or a problem with the sensor adapter."
+                )
+                # Depending on severity, we might want to break, retry, or enter a degraded mode.
+                # For this example, we'll break the loop.
+                logger.info(
+                    "Stopping power monitoring demonstration due to sensor error."
+                )
+                break
             except KeyboardInterrupt:
                 logger.info("Interrupted by user")
                 break
@@ -132,8 +146,15 @@ def main() -> None:
     except ImportError as e:
         logger.error(f"Could not import INA219PowerMonitor: {e}")
         logger.info("Make sure the sensors module is properly installed")
+    except SensorReadError as sre_init:  # Catch SensorReadError during initialization
+        logger.error(
+            f"Failed to initialize INA219 Power Monitor due to sensor error: {sre_init}"
+        )
+        logger.info(
+            "Please check hardware connections if in production, or simulation setup."
+        )
     except Exception as e:
-        logger.error(f"Failed to initialize power monitoring: {e}")
+        logger.error(f"Failed to initialize or run power monitoring: {e}")
 
 
 if __name__ == "__main__":
