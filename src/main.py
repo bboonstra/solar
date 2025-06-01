@@ -1,5 +1,6 @@
 import yaml
 import logging
+import time
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -73,7 +74,7 @@ def load_gpio_module(production: bool, logger: logging.Logger) -> Optional[Any]:
 
 
 def main() -> None:
-    """Main application entry point."""
+    """Main application entry point with INA219 power monitoring."""
     # Load configuration and setup logging
     config = load_config()
     logger = setup_logging(config)
@@ -88,6 +89,51 @@ def main() -> None:
         logger.info("GPIO module loaded successfully - ready for hardware operations")
     else:
         logger.error("GPIO module not available - hardware operations will fail")
+
+    # Initialize INA219 Power Monitor
+    try:
+        from sensors import INA219PowerMonitor
+
+        power_monitor = INA219PowerMonitor(config, production)
+        logger.info("INA219 Power Monitor initialized successfully")
+
+        # Demonstrate power monitoring in a loop
+        logger.info("Starting power monitoring demonstration...")
+
+        for i in range(10):  # Take 10 readings
+            try:
+                # Get a power reading
+                reading = power_monitor.get_reading()
+
+                # Log the reading
+                logger.info(
+                    f"Reading {i + 1}: V={reading.voltage:.2f}V, "
+                    f"I={reading.current:.3f}A, P={reading.power:.2f}W"
+                )
+
+                # Check if we're in a healthy state
+                if not power_monitor.is_healthy():
+                    logger.warning("Power monitor unhealthy!")
+
+                # Wait before next reading
+                time.sleep(power_monitor.measurement_interval)
+
+            except KeyboardInterrupt:
+                logger.info("Interrupted by user")
+                break
+            except Exception as e:
+                logger.error(f"Error during power monitoring: {e}")
+                break
+
+        # Show final status
+        status = power_monitor.get_status()
+        logger.info(f"Power monitoring complete. Final status: {status}")
+
+    except ImportError as e:
+        logger.error(f"Could not import INA219PowerMonitor: {e}")
+        logger.info("Make sure the sensors module is properly installed")
+    except Exception as e:
+        logger.error(f"Failed to initialize power monitoring: {e}")
 
 
 if __name__ == "__main__":

@@ -12,3 +12,6 @@ six==1.17.0
 smbus2==0.5.0
 tzdata==2025.2
 wheel==0.45.1
+
+# Power monitoring with INA219 sensor
+adafruit-circuitpython-ina219==3.4.15
