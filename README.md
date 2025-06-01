@@ -21,6 +21,10 @@ Investigate how robotics can enhance environmental sustainability by automating 
 - GPIO, pneumatic actuation, custom servos
 - Sensor suite for environmental monitoring
 
+## Development
+
+See [development.md](development.md)
+
 ## Contributing
 
 This project is open for **non-commercial tinkering and experimentation**. Pull requests are welcome. Please keep contributions clean, modular, and well-documented.
