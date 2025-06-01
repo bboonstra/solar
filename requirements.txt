@@ -17,4 +17,4 @@ wheel==0.45.1
 adafruit-circuitpython-ina219==3.4.15
 
 # Colorized logging
-colorlog==6.8.2
+colorlog==6.9.0
