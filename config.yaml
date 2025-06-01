@@ -32,7 +32,7 @@ logging:
     INFO: "white"
     WARNING: "yellow"
     ERROR: "red"
-    CRITICAL: "red,bg_white"
+    CRITICAL: "red,bg_yellow"
   # Log format settings
   format:
     # Date format for timestamps
