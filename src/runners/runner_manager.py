@@ -5,11 +5,11 @@ This module provides central management for all threaded runners.
 It handles startup, shutdown, monitoring, and status reporting for all runners.
 """
 
+import logging
 import signal
 import time
-import logging
-from typing import Dict, Any, Optional, Type
 from dataclasses import dataclass
+from typing import Any, Dict, Optional, Type
 
 from .base_runner import BaseRunner, RunnerStatus
 from .ina219_runner import INA219Runner

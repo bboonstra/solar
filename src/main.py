@@ -27,17 +27,17 @@ Requirements:
     - See requirements.txt for dependencies
 """
 
-import yaml
 import logging
 import time
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-# Import the specific error for better handling
-from sensors.ina219_power_monitor import SensorReadError
+import yaml
 
 # Import configuration validator
 from config_validator import validate_configuration_files
+# Import the specific error for better handling
+from sensors.ina219_power_monitor import SensorReadError
 
 # Get the directory where this script is located
 SCRIPT_DIR = Path(__file__).parent.parent  # Go up one level from src/ to project root

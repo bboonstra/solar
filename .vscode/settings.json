@@ -1,13 +1,21 @@
 {
-    "liveServer.settings.root": "/site",
-    "python.testing.unittestArgs": ["-v", "-s", "./tests", "-p", "test_*.py"],
-    "python.testing.pytestEnabled": true,
-    "python.testing.unittestEnabled": false,
-    "files.exclude": {
-        "**/*.rpyc": true,
-        "**/*.rpa": true,
-        "**/*.rpymc": true,
-        "**/cache/": true
-    },
-    "python.testing.pytestArgs": ["tests"]
+  "liveServer.settings.root": "/site",
+  "python.testing.unittestArgs": ["-v", "-s", "./tests", "-p", "test_*.py"],
+  "python.testing.pytestEnabled": true,
+  "python.testing.unittestEnabled": false,
+  "files.exclude": {
+    "**/*.rpyc": true,
+    "**/*.rpa": true,
+    "**/*.rpymc": true,
+    "**/cache/": true
+  },
+  "python.testing.pytestArgs": ["tests"],
+  "isort.args": ["--profile", "black"],
+  "[python]": {
+    "editor.defaultFormatter": "ms-python.black-formatter",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "always"
+    }
+  }
 }

@@ -5,13 +5,12 @@ This module contains comprehensive unit tests for the BaseRunner abstract class
 and its concrete implementations.
 """
 
-import unittest
-import time
-from typing import Dict, Any
-
 # Add parent directory to path for imports
 import sys
+import time
+import unittest
 from pathlib import Path
+from typing import Any, Dict
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 

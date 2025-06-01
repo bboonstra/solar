@@ -5,21 +5,18 @@ Unit tests for INA219 Power Monitor
 Tests both development (simulated) and production modes of the power monitor.
 """
 
-import unittest
 import sys
+import unittest
 from pathlib import Path
-from unittest.mock import patch, MagicMock  # For mocking hardware
+from unittest.mock import MagicMock, patch  # For mocking hardware
 
 # Add the src directory to Python path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 # Now import from sensors, including the new error type
 from sensors import INA219PowerMonitor
-from sensors.ina219_power_monitor import (
-    PowerReading,
-    SensorReadError,
-    SimulatedINA219Adapter,
-)
+from sensors.ina219_power_monitor import (PowerReading, SensorReadError,
+                                          SimulatedINA219Adapter)
 
 
 class TestINA219PowerMonitorDevelopment(unittest.TestCase):

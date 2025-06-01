@@ -12,12 +12,12 @@ Features:
 - Configurable thresholds and alerts
 """
 
-import time
-import logging
-from typing import Dict, Any, Optional
-from dataclasses import dataclass
 import abc  # Added for Abstract Base Class
+import logging
 import random  # Moved import for use in SimulatedINA219Adapter
+import time
+from dataclasses import dataclass
+from typing import Any, Dict, Optional
 
 
 # Custom Exception for sensor reading errors

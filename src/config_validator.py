@@ -6,8 +6,8 @@ to ensure all required settings are present and have valid values.
 """
 
 import logging
-from typing import Any, Dict, List, Tuple
 from pathlib import Path
+from typing import Any, Dict, List, Tuple
 
 
 class ConfigValidator:

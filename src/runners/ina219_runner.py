@@ -6,13 +6,14 @@ It continuously monitors power consumption in a separate thread.
 """
 
 import time
-from typing import Dict, Any, Optional, List
 from collections import deque
 from dataclasses import dataclass
+from typing import Any, Dict, List, Optional
+
+from sensors import INA219PowerMonitor
+from sensors.ina219_power_monitor import PowerReading, SensorReadError
 
 from .base_runner import BaseRunner
-from sensors import INA219PowerMonitor
-from sensors.ina219_power_monitor import SensorReadError, PowerReading
 
 
 @dataclass

@@ -9,15 +9,15 @@ Usage:
     python src/examples/threaded_runner_demo.py
 """
 
+import signal
 import sys
 import time
-import signal
 from pathlib import Path
 
 # Add the src directory to Python path so we can import our modules
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from main import load_config, setup_logging, load_environment_config
+from main import load_config, load_environment_config, setup_logging
 from runners import RunnerManager
 
 

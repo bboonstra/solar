@@ -6,12 +6,12 @@ All sensor and system runners should inherit from BaseRunner.
 """
 
 import abc
+import logging
 import threading
 import time
-import logging
-from typing import Any, Dict, Optional
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any, Dict, Optional
 
 
 class RunnerState(Enum):
