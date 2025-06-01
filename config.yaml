@@ -28,10 +28,10 @@ logging:
   debug: true
   # Individual color settings for each log level
   colors:
-    DEBUG: "purple"
-    INFO: "blue"
+    DEBUG: "blue"
+    INFO: "white"
     WARNING: "yellow"
-    ERROR: "orange"
+    ERROR: "red"
     CRITICAL: "red,bg_white"
   # Log format settings
   format:
