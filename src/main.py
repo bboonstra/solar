@@ -1,6 +1,10 @@
 import yaml
 import logging
+from pathlib import Path
 from typing import Any, Dict, Optional
+
+# Get the directory where this script is located
+SCRIPT_DIR = Path(__file__).parent.parent  # Go up one level from src/ to project root
 
 
 def setup_logging(config: Dict[str, Any]) -> logging.Logger:
@@ -16,12 +20,13 @@ def setup_logging(config: Dict[str, Any]) -> logging.Logger:
 
 def load_config() -> Dict[str, Any]:
     """Load main configuration from config.yaml."""
+    config_path = SCRIPT_DIR / "config.yaml"
     try:
-        with open("config.yaml", "r") as f:
+        with open(config_path, "r") as f:
             return yaml.safe_load(f)
     except FileNotFoundError:
         raise FileNotFoundError(
-            "config.yaml not found. Please ensure it exists in the project root."
+            f"config.yaml not found at {config_path}. Please ensure it exists in the project root."
         )
     except yaml.YAMLError as e:
         raise ValueError(f"Invalid YAML in config.yaml: {e}")
@@ -29,14 +34,17 @@ def load_config() -> Dict[str, Any]:
 
 def load_environment_config(logger: logging.Logger) -> bool:
     """Load environment configuration and return production flag."""
+    env_config_path = SCRIPT_DIR / "environment.yaml"
     try:
-        with open("environment.yaml", "r") as f:
+        with open(env_config_path, "r") as f:
             env_config = yaml.safe_load(f)
         production = env_config.get("production", False)
         logger.info(f"Environment: {'production' if production else 'development'}")
         return production
     except FileNotFoundError:
-        logger.warning("environment.yaml not found, defaulting to development mode")
+        logger.warning(
+            f"environment.yaml not found at {env_config_path}, defaulting to development mode"
+        )
         return False
     except yaml.YAMLError as e:
         logger.warning(
