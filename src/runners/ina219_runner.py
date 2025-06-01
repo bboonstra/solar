@@ -247,9 +247,9 @@ class INA219Runner(BaseRunner):
 
         enhanced = {
             "base_status": base_status,
-            "power_monitor_healthy": self.power_monitor.is_healthy()
-            if self.power_monitor
-            else False,
+            "power_monitor_healthy": (
+                self.power_monitor.is_healthy() if self.power_monitor else False
+            ),
             "last_reading": None,
             "power_stats": None,
             "alert_counts": {
