@@ -33,7 +33,8 @@ class RunnerManager:
     Central manager for all threaded runners.
 
     Provides:
-    - Runner registration and lifecycle management
+    - Dynamic runner registration based on configuration
+    - Runner lifecycle management
     - Graceful startup and shutdown
     - Health monitoring
     - Status reporting
@@ -54,6 +55,8 @@ class RunnerManager:
 
         # Runner registry
         self._runners: Dict[str, BaseRunner] = {}
+
+        # Runner type registry - maps runner types to their classes
         self._runner_classes: Dict[str, Type[BaseRunner]] = {
             "ina219": INA219Runner,
             # Add more runner classes here as they are developed
@@ -85,48 +88,64 @@ class RunnerManager:
         signal.signal(signal.SIGINT, signal_handler)
         signal.signal(signal.SIGTERM, signal_handler)
 
-    def register_runner(
-        self, runner_type: str, runner_name: Optional[str] = None
-    ) -> bool:
+    def register_runner(self, runner_id: str, runner_config: Dict[str, Any]) -> bool:
         """
-        Register and initialize a runner.
+        Register and initialize a runner from configuration.
 
         Args:
-            runner_type: Type of runner (e.g., 'ina219')
-            runner_name: Optional custom name (defaults to runner_type)
+            runner_id: Unique identifier for this runner instance
+            runner_config: Configuration dictionary for this runner
 
         Returns:
             True if registered successfully, False otherwise
         """
+        success = False
+
+        # Early validation checks
         if not self.threaded_runners_enabled:
-            self.logger.info(f"Threaded runners disabled, skipping {runner_type}")
-            return False
+            self.logger.info(f"Threaded runners disabled, skipping {runner_id}")
+        elif runner_id in self._runners:
+            self.logger.warning(f"Runner '{runner_id}' already registered")
+        else:
+            # Get runner type from config
+            runner_type = runner_config.get("type")
+            if not runner_type:
+                self.logger.error(f"Runner type not specified for '{runner_id}'")
+            elif runner_type not in self._runner_classes:
+                self.logger.error(
+                    f"Unknown runner type '{runner_type}' for '{runner_id}'"
+                )
+            else:
+                try:
+                    runner_class = self._runner_classes[runner_type]
+                    runner = runner_class(runner_id, runner_config, self.production)
 
-        runner_name = runner_name or runner_type
+                    if not runner.enabled:
+                        self.logger.info(
+                            f"Runner '{runner_id}' is disabled in configuration"
+                        )
+                    else:
+                        self._runners[runner_id] = runner
+                        self.logger.info(
+                            f"Registered runner: {runner_id} ({runner_type})"
+                        )
+                        success = True
 
-        if runner_name in self._runners:
-            self.logger.warning(f"Runner '{runner_name}' already registered")
-            return False
+                except Exception as e:
+                    self.logger.error(f"Failed to register runner '{runner_id}': {e}")
 
-        if runner_type not in self._runner_classes:
-            self.logger.error(f"Unknown runner type: {runner_type}")
-            return False
+        return success
 
-        try:
-            runner_class = self._runner_classes[runner_type]
-            runner = runner_class(runner_name, self.config, self.production)
+    def _auto_register_runners(self) -> None:
+        """Automatically register runners based on configuration."""
+        runners_config = self.config.get("runners", {})
 
-            if not runner.enabled:
-                self.logger.info(f"Runner '{runner_name}' is disabled in configuration")
-                return False
+        for runner_id, runner_config in runners_config.items():
+            if not isinstance(runner_config, dict):
+                self.logger.warning(f"Invalid configuration for runner '{runner_id}'")
+                continue
 
-            self._runners[runner_name] = runner
-            self.logger.info(f"Registered runner: {runner_name} ({runner_type})")
-            return True
-
-        except Exception as e:
-            self.logger.error(f"Failed to register runner '{runner_name}': {e}")
-            return False
+            self.register_runner(runner_id, runner_config)
 
     def start_all_runners(self) -> bool:
         """
@@ -216,14 +235,6 @@ class RunnerManager:
         self._start_time = time.time()
         self.logger.info("Runner manager started successfully")
         return True
-
-    def _auto_register_runners(self) -> None:
-        """Automatically register runners based on configuration."""
-        # Register INA219 runner if configured
-        if "ina219" in self.config and self.config["ina219"].get("enabled", True):
-            self.register_runner("ina219")
-
-        # Add more auto-registration logic here for future runners
 
     def shutdown(self) -> None:
         """Initiate graceful shutdown of the runner manager."""

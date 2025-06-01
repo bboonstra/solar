@@ -1,24 +1,29 @@
 # Bot configuration - this file can be tracked in git and remotely modified
 # Environment-specific settings (production vs development) are in environment.yaml
 
-gpio:
-  # Add GPIO pin configurations here as needed
-  led_pin: 18
-  sensor_pin: 24
+# Runner configurations
+runners:
+  # Solar power monitoring INA219
+  solar_power:
+    type: ina219
+    label: "Solar Power Monitor"
+    enabled: true
+    i2c_address: 0x40
+    measurement_interval: 1.0
+    log_measurements: true
+    low_power_threshold: 0.5
+    high_power_threshold: 10.0
 
-# Power monitoring with INA219 sensor
-ina219:
-  # Enable/disable this sensor module
-  enabled: true
-  # I2C address (can be 0x40, 0x41, 0x44, 0x45)
-  i2c_address: 0x40
-  # Measurement interval in seconds
-  measurement_interval: 1.0
-  # Enable logging of measurements
-  log_measurements: true
-  # Power thresholds for alerts (in watts)
-  low_power_threshold: 0.5
-  high_power_threshold: 10.0
+  # Docked power monitoring INA219
+  docked_power:
+    type: ina219
+    label: "Docked Power Monitor"
+    enabled: false
+    i2c_address: 0x41
+    measurement_interval: 1.0
+    log_measurements: true
+    low_power_threshold: 0.5
+    high_power_threshold: 15.0
 
 # Main application configuration
 application:

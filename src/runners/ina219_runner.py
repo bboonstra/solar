@@ -36,18 +36,33 @@ class INA219Runner(BaseRunner):
     Provides alerts for power threshold violations.
     """
 
-    def __init__(self, config: Dict[str, Any], production: bool = False):
+    def __init__(
+        self, runner_id: str, config: Dict[str, Any], production: bool = False
+    ):
         """
         Initialize the INA219 runner.
 
         Args:
-            config: Configuration dictionary
+            runner_id: Unique identifier for this runner instance
+            config: Configuration dictionary for this runner instance
             production: Whether running in production mode
         """
-        # Get INA219-specific config
-        ina219_config = config.get("ina219", {})
+        # Get runner-specific config
+        self.label = config.get("label", runner_id)
+        self.i2c_address = config.get("i2c_address", 0x40)
 
-        super().__init__("INA219", ina219_config, production)
+        # Create a config dict that matches the old structure for INA219PowerMonitor
+        ina219_config = {
+            "ina219": {
+                "i2c_address": self.i2c_address,
+                "measurement_interval": config.get("measurement_interval", 1.0),
+                "log_measurements": config.get("log_measurements", True),
+                "low_power_threshold": config.get("low_power_threshold", 0.5),
+                "high_power_threshold": config.get("high_power_threshold", 10.0),
+            }
+        }
+
+        super().__init__(runner_id, config, production)
 
         # INA219-specific configuration
         self.log_measurements = self._get_config_value("log_measurements", True)
@@ -68,33 +83,37 @@ class INA219Runner(BaseRunner):
         self._low_power_alert_threshold = 3  # Alert after 3 consecutive readings
         self._high_power_alert_threshold = 3
 
+        # Store the full config for the power monitor
+        self._ina219_config = ina219_config
+
     def _initialize(self) -> bool:
         """Initialize the INA219 power monitor."""
         try:
-            # Create full config dict for INA219PowerMonitor
-            full_config = {"ina219": self.config}
-            self.power_monitor = INA219PowerMonitor(full_config, self.production)
+            # Create power monitor with instance-specific config
+            self.power_monitor = INA219PowerMonitor(
+                self._ina219_config, self.production
+            )
 
             # Take a test reading to verify functionality
             test_reading = self.power_monitor.get_reading()
             self.logger.info(
-                f"INA219 runner initialized successfully - "
+                f"{self.label} initialized successfully - "
                 f"Test reading: {test_reading.voltage:.2f}V, "
                 f"{test_reading.current:.3f}A, {test_reading.power:.2f}W"
             )
             return True
 
         except SensorReadError as e:
-            self.logger.error(f"Failed to initialize INA219 power monitor: {e}")
+            self.logger.error(f"Failed to initialize {self.label}: {e}")
             return False
         except Exception as e:
-            self.logger.error(f"Unexpected error initializing INA219 runner: {e}")
+            self.logger.error(f"Unexpected error initializing {self.label}: {e}")
             return False
 
     def _work_cycle(self) -> None:
         """Perform one power monitoring cycle."""
         if not self.power_monitor:
-            raise RuntimeError("Power monitor not initialized")
+            raise RuntimeError(f"{self.label} not initialized")
 
         try:
             # Take a power reading
@@ -105,7 +124,7 @@ class INA219Runner(BaseRunner):
             # Log the reading if enabled
             if self.log_measurements:
                 self.logger.info(
-                    f"Power Reading - V: {reading.voltage:.2f}V, "
+                    f"{self.label} - V: {reading.voltage:.2f}V, "
                     f"I: {reading.current:.3f}A, P: {reading.power:.2f}W"
                 )
 
@@ -113,7 +132,7 @@ class INA219Runner(BaseRunner):
             self._check_power_alerts(reading)
 
         except SensorReadError as e:
-            self.logger.error(f"Sensor read error in INA219 runner: {e}")
+            self.logger.error(f"Sensor read error in {self.label}: {e}")
             # Don't stop the runner for sensor errors, just log them
             raise  # Re-raise so base class can handle it
 
@@ -126,7 +145,7 @@ class INA219Runner(BaseRunner):
 
             if self._consecutive_low_power == self._low_power_alert_threshold:
                 self.logger.warning(
-                    f"LOW POWER ALERT: {reading.power:.2f}W for "
+                    f"{self.label} - LOW POWER ALERT: {reading.power:.2f}W for "
                     f"{self._consecutive_low_power} consecutive readings "
                     f"(threshold: {self.low_power_threshold}W)"
                 )
@@ -138,7 +157,7 @@ class INA219Runner(BaseRunner):
 
             if self._consecutive_high_power == self._high_power_alert_threshold:
                 self.logger.warning(
-                    f"HIGH POWER ALERT: {reading.power:.2f}W for "
+                    f"{self.label} - HIGH POWER ALERT: {reading.power:.2f}W for "
                     f"{self._consecutive_high_power} consecutive readings "
                     f"(threshold: {self.high_power_threshold}W)"
                 )
@@ -230,7 +249,7 @@ class INA219Runner(BaseRunner):
         if isinstance(error, SensorReadError):
             # For sensor read errors, continue running but increment error count
             self.logger.warning(
-                f"Sensor read error in INA219 runner (continuing): {error}"
+                f"Sensor read error in {self.label} (continuing): {error}"
             )
             return True
 
@@ -248,6 +267,8 @@ class INA219Runner(BaseRunner):
 
         enhanced = {
             "base_status": base_status,
+            "label": self.label,
+            "i2c_address": f"0x{self.i2c_address:02X}",
             "power_monitor_healthy": (
                 self.power_monitor.is_healthy() if self.power_monitor else False
             ),
