@@ -14,7 +14,6 @@ Exports:
     - SensorReadError: Exception for sensor read failures
 """
 
-from .ina219_power_monitor import (INA219PowerMonitor, PowerReading,
-                                   SensorReadError)
+from .ina219_power_monitor import INA219PowerMonitor, PowerReading, SensorReadError
 
 __all__ = ["INA219PowerMonitor", "PowerReading", "SensorReadError"]

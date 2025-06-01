@@ -36,6 +36,7 @@ import yaml
 
 # Import configuration validator
 from config_validator import validate_configuration_files
+
 # Import the specific error for better handling
 from sensors.ina219_power_monitor import SensorReadError
 
