@@ -3,7 +3,6 @@
 
 # on dev machine (default), use:
 fake_rpi @ git+https://github.com/sn4k3/FakeRPi@0f30d320d5f715d8a4fb94e7105448508586ae94
-numpy==2.2.6
 pandas==2.2.3
 pyserial==3.5
 python-dateutil==2.9.0.post0
