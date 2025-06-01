@@ -95,7 +95,7 @@ class HardwareINA219Adapter(PowerSensorAdapter):
             raise  # Re-raise to prevent operation without sensor
         except Exception as e:
             self.logger.error(f"Failed to initialize INA219 hardware: {e}")
-            raise SensorReadError(f"Failed to initialize INA219 hardware: {e}")
+            raise SensorReadError(f"Failed to initialize INA219 hardware: {e}") from e
 
     def initialize(self) -> None:
         # Initialization is done in __init__ for this adapter
@@ -111,7 +111,7 @@ class HardwareINA219Adapter(PowerSensorAdapter):
             return self.sensor.bus_voltage  # Already in Volts
         except Exception as e:
             self.logger.error(f"Error reading voltage from hardware: {e}")
-            raise SensorReadError(f"Error reading voltage from hardware: {e}")
+            raise SensorReadError(f"Error reading voltage from hardware: {e}") from e
 
     def read_current_ma(self) -> float:
         if not self.sensor:
@@ -120,7 +120,7 @@ class HardwareINA219Adapter(PowerSensorAdapter):
             return self.sensor.current  # In mA
         except Exception as e:
             self.logger.error(f"Error reading current from hardware: {e}")
-            raise SensorReadError(f"Error reading current from hardware: {e}")
+            raise SensorReadError(f"Error reading current from hardware: {e}") from e
 
     def read_power_mw(self) -> float:
         if not self.sensor:
@@ -131,7 +131,7 @@ class HardwareINA219Adapter(PowerSensorAdapter):
             return self.sensor.power  # In mW
         except Exception as e:
             self.logger.error(f"Error reading power from hardware: {e}")
-            raise SensorReadError(f"Error reading power from hardware: {e}")
+            raise SensorReadError(f"Error reading power from hardware: {e}") from e
 
 
 # Concrete Adapter for Simulated Sensor
@@ -328,54 +328,60 @@ class INA219PowerMonitor:
         Returns:
             True if sensor appears healthy, False otherwise
         """
+        health_status = False  # Default to unhealthy
         try:
             # Attempt to initialize the adapter if it's not ready (e.g., if initial attempt failed)
             # This is a bit complex as initialize() might raise errors.
             # A simpler health check is to just try getting a reading.
-            if hasattr(self, "sensor_adapter") and self.sensor_adapter:
-                # For hardware adapter, ensure it's truly initialized
-                if (
-                    isinstance(self.sensor_adapter, HardwareINA219Adapter)
-                    and not self.sensor_adapter.sensor
-                ):
-                    try:
-                        self.logger.info(
-                            "Attempting to re-initialize hardware sensor for health check."
-                        )
-                        self.sensor_adapter.initialize()
-                    except SensorReadError as init_e:
-                        self.logger.warning(
-                            f"Sensor re-initialization failed during health check: {init_e}"
-                        )
-                        return False
-            else:
+            if not (hasattr(self, "sensor_adapter") and self.sensor_adapter):
                 self.logger.warning("Sensor adapter not available for health check.")
-                return False
+                return health_status
+
+            # For hardware adapter, ensure it's truly initialized
+            if (
+                isinstance(self.sensor_adapter, HardwareINA219Adapter)
+                and not self.sensor_adapter.sensor
+            ):
+                try:
+                    self.logger.info(
+                        "Attempting to re-initialize hardware sensor for health check."
+                    )
+                    self.sensor_adapter.initialize()
+                except SensorReadError as init_e:
+                    self.logger.warning(
+                        f"Sensor re-initialization failed during health check: {init_e}"
+                    )
+                    return health_status
 
             reading = (
                 self.get_reading()
             )  # This will raise SensorReadError if issues occur
-            # Basic sanity checks
-            if not (
-                -0.1 < reading.voltage < 30
-            ):  # Allow slightly below 0 for noise, but not much
-                self.logger.warning(f"Unhealthy voltage: {reading.voltage}V")
-                return False
-            if not (-5.0 < reading.current < 5.0):  # Reasonable current limit (A)
-                self.logger.warning(f"Unhealthy current: {reading.current}A")
-                return False
-            if not (
-                -1.0 < reading.power < 150.0
-            ):  # Reasonable power limit (W), allow slightly negative
-                self.logger.warning(f"Unhealthy power: {reading.power}W")
-                return False
-            return True
+
+            # Basic sanity checks - all conditions must be met for healthy status
+            health_status = (
+                -0.1
+                < reading.voltage
+                < 30  # Allow slightly below 0 for noise, but not much
+                and -5.0 < reading.current < 5.0  # Reasonable current limit (A)
+                and -1.0
+                < reading.power
+                < 150.0  # Reasonable power limit (W), allow slightly negative
+            )
+
+            if not health_status:
+                if not (-0.1 < reading.voltage < 30):
+                    self.logger.warning(f"Unhealthy voltage: {reading.voltage}V")
+                if not (-5.0 < reading.current < 5.0):
+                    self.logger.warning(f"Unhealthy current: {reading.current}A")
+                if not (-1.0 < reading.power < 150.0):
+                    self.logger.warning(f"Unhealthy power: {reading.power}W")
+
         except SensorReadError as e:
             self.logger.error(f"Health check failed due to sensor read error: {e}")
-            return False
         except Exception as e:  # Catch any other unexpected errors
             self.logger.error(f"Health check failed due to unexpected error: {e}")
-            return False
+
+        return health_status
 
     def get_status(self) -> Dict[str, Any]:
         """

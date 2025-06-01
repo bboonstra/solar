@@ -140,12 +140,12 @@ def load_config() -> Dict[str, Any]:
     try:
         with open(config_path, "r") as f:
             return yaml.safe_load(f)
-    except FileNotFoundError:
+    except FileNotFoundError as exc:
         raise FileNotFoundError(
             f"config.yaml not found at {config_path}. Please ensure it exists in the project root."
-        )
+        ) from exc
     except yaml.YAMLError as e:
-        raise ValueError(f"Invalid YAML in config.yaml: {e}")
+        raise ValueError(f"Invalid YAML in config.yaml: {e}") from e
 
 
 def load_environment_config(logger: logging.Logger) -> bool:
