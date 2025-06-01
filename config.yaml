@@ -8,6 +8,8 @@ gpio:
 
 # Power monitoring with INA219 sensor
 ina219:
+  # Enable/disable this sensor module
+  enabled: true
   # I2C address (can be 0x40, 0x41, 0x44, 0x45)
   i2c_address: 0x40
   # Measurement interval in seconds
@@ -17,6 +19,15 @@ ina219:
   # Power thresholds for alerts (in watts)
   low_power_threshold: 0.5
   high_power_threshold: 10.0
+
+# Main application configuration
+application:
+  # Enable/disable threaded runner system
+  threaded_runners: true
+  # Main loop interval in seconds
+  main_loop_interval: 2
+  # Graceful shutdown timeout in seconds
+  shutdown_timeout: 5.0
 
 # Logging configuration
 logging:
