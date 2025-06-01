@@ -25,6 +25,23 @@ runners:
     low_power_threshold: 0.5
     high_power_threshold: 15.0
 
+  # PiPower UPS monitoring
+  pipower:
+    type: pipower
+    label: "PiPower UPS Monitor"
+    enabled: true
+    measurement_interval: 1.0
+    log_readings: true
+    # GPIO pin configuration (BCM numbering)
+    bt_lv_pin: 17 # Battery voltage pin (requires ADC)
+    adc_channel: 0 # ADC channel for BT_LV (e.g., MCP3008 channel)
+    in_dt_pin: 18 # USB power input detect
+    chg_pin: 27 # Charging status
+    lo_dt_pin: 22 # Low battery detect
+    # Alert thresholds (consecutive readings)
+    low_battery_alert_threshold: 3
+    no_usb_alert_threshold: 3
+
 # Main application configuration
 application:
   # Enable/disable threaded runner system
