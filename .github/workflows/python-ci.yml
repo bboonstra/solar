@@ -3,8 +3,18 @@ name: Python CI
 on:
   push:
     branches: [main, develop]
+    paths:
+      - "src/**"
+      - "tests/**"
+      - ".github/workflows/python-ci.yml"
+      - "requirements.txt"
   pull_request:
     branches: [main]
+    paths:
+      - "src/**"
+      - "tests/**"
+      - ".github/workflows/python-ci.yml"
+      - "requirements.txt"
 
 jobs:
   lint:
@@ -44,7 +54,7 @@ jobs:
 
       - name: Type check with mypy
         run: |
-          mypy src/ --ignore-missing-imports
+          mypy src/ tests/ --ignore-missing-imports
 
       - name: Lint with pylint
         run: |

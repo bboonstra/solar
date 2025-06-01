@@ -1,6 +1,7 @@
 # SOLAR — Semi-Autonomous Outdoor Life Assisting Robot
 
 [![Python CI](https://github.com/bboonstra/solar/actions/workflows/python-ci.yml/badge.svg)](https://github.com/bboonstra/solar/actions/workflows/python-ci.yml)
+
 [![License: Polyform Noncommercial](https://img.shields.io/badge/License-Polyform%20Noncommercial-blue.svg)](https://polyformproject.org/licenses/noncommercial/1.0.0/)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 
