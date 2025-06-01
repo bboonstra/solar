@@ -18,7 +18,26 @@ ina219:
   low_power_threshold: 0.5
   high_power_threshold: 10.0
 
-# Other configuration options
-debug: true
-log_level: "DEBUG"
-colorized_logging: true
+# Logging configuration
+logging:
+  # Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+  level: "DEBUG"
+  # Enable colorized logging output
+  colorized: true
+  # Enable debug mode
+  debug: true
+  # Individual color settings for each log level
+  colors:
+    DEBUG: "purple"
+    INFO: "blue"
+    WARNING: "yellow"
+    ERROR: "orange"
+    CRITICAL: "red,bg_white"
+  # Log format settings
+  format:
+    # Date format for timestamps
+    date_format: "%Y-%m-%d %H:%M:%S"
+    # Message format (with color placeholders)
+    message_format: "%(log_color)s%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    # Simple format (without colors)
+    simple_format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"

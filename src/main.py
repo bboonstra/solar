@@ -13,24 +13,42 @@ SCRIPT_DIR = Path(__file__).parent.parent  # Go up one level from src/ to projec
 
 def setup_logging(config: Dict[str, Any]) -> logging.Logger:
     """Configure logging with colorized output based on configuration."""
-    log_level = config.get("log_level", "INFO").upper()
-    use_colors = config.get("colorized_logging", True)
+    # Get logging configuration with defaults
+    logging_config = config.get("logging", {})
+    log_level = logging_config.get("level", "INFO").upper()
+    use_colors = logging_config.get("colorized", True)
+
+    # Get color and format settings
+    colors = logging_config.get(
+        "colors",
+        {
+            "DEBUG": "blue",
+            "INFO": "white",
+            "WARNING": "yellow",
+            "ERROR": "red",
+            "CRITICAL": "red,bg_white",
+        },
+    )
+
+    format_config = logging_config.get("format", {})
+    date_format = format_config.get("date_format", "%Y-%m-%d %H:%M:%S")
+    color_format = format_config.get(
+        "message_format",
+        "%(log_color)s%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    )
+    simple_format = format_config.get(
+        "simple_format", "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
 
     try:
         if use_colors:
             import colorlog
 
-            # Create a colorized formatter
+            # Create a colorized formatter with configurable colors
             formatter = colorlog.ColoredFormatter(
-                "%(log_color)s%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-                datefmt="%Y-%m-%d %H:%M:%S",
-                log_colors={
-                    "DEBUG": "purple",
-                    "INFO": "blue",
-                    "WARNING": "yellow",
-                    "ERROR": "orange",
-                    "CRITICAL": "red,bg_white",
-                },
+                color_format,
+                datefmt=date_format,
+                log_colors=colors,
                 secondary_log_colors={},
                 style="%",
             )
@@ -55,8 +73,8 @@ def setup_logging(config: Dict[str, Any]) -> logging.Logger:
         # Fallback to standard logging if colorlog is not available or disabled
         logging.basicConfig(
             level=getattr(logging, log_level),
-            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-            datefmt="%Y-%m-%d %H:%M:%S",
+            format=simple_format,
+            datefmt=date_format,
         )
         if use_colors:
             print(
