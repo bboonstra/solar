@@ -1,0 +1,5 @@
+# Environment configuration - this file determines whether we're running in production or development
+# This file should not be committed to git and should be configured locally on each environment
+# Copy this file to environment.yaml and set the production flag so it is recognized by the program
+# cp environment.example.yaml environment.yaml
+production: false

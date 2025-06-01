@@ -1,0 +1,11 @@
+# Bot configuration - this file can be tracked in git and remotely modified
+# Environment-specific settings (production vs development) are in environment.yaml
+
+gpio:
+  # Add GPIO pin configurations here as needed
+  led_pin: 18
+  sensor_pin: 24
+
+# Other configuration options
+debug: true
+log_level: "DEBUG"
