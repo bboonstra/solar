@@ -13,6 +13,7 @@ import signal
 import sys
 import time
 from pathlib import Path
+from typing import Optional
 
 # Add the src directory to Python path so we can import our modules
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -27,7 +28,7 @@ class ThreadedRunnerDemo:
     def __init__(self):
         """Initialize the threaded runner demo."""
         self.running = False
-        self.runner_manager = None
+        self.runner_manager: Optional[RunnerManager] = None
 
         # Setup signal handler for graceful shutdown
         signal.signal(signal.SIGINT, self._signal_handler)
@@ -124,6 +125,9 @@ class ThreadedRunnerDemo:
 
     def _show_runner_details(self):
         """Show detailed information for specific runners."""
+        if not self.runner_manager:
+            return
+
         # Show INA219 runner details if available
         ina219_runner = self.runner_manager.get_runner("ina219")
         if ina219_runner and hasattr(ina219_runner, "get_enhanced_status"):

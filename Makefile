@@ -41,7 +41,7 @@ format:
 	isort src/ tests/
 
 type-check:
-	mypy src/ --ignore-missing-imports
+	mypy src/ --ignore-missing-imports --check-untyped-defs
 
 # Running targets
 run:
