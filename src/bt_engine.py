@@ -1,9 +1,9 @@
 import logging  # Added logging
 import sched  # Added sched for time-based events
-import time  # Added time for sched
+import time as time_module  # Renamed to avoid conflict
 from datetime import datetime
+from datetime import time as datetime_time
 from pathlib import Path
-from typing import Optional
 
 import py_trees
 import yaml
@@ -13,8 +13,6 @@ import yaml
 
 
 class TimeCondition(py_trees.behaviour.Behaviour):
-    target_time: Optional[datetime.time]
-
     def __init__(self, time_str: str, name: str = "TimeCondition"):
         """
         Initialize a time condition that checks if current time has reached or passed the target time.
@@ -25,13 +23,14 @@ class TimeCondition(py_trees.behaviour.Behaviour):
         """
         super(TimeCondition, self).__init__(name)
         self.target_time_str = time_str
+        self.target_time: datetime_time | None = None
         try:
             # Parse the time string to ensure it's valid
-            self.target_time = datetime.strptime(time_str, "%H:%M").time()
+            parsed_time = datetime.strptime(time_str, "%H:%M")
+            self.target_time = parsed_time.time()
             self.logger.debug(f"TimeCondition initialized for {time_str}")
         except ValueError as e:
             self.logger.error(f"Invalid time format {time_str}: {e}")
-            self.target_time = None
 
     def update(self) -> py_trees.common.Status:
         if self.target_time is None:
@@ -48,9 +47,6 @@ class TimeCondition(py_trees.behaviour.Behaviour):
 
 
 class TimeRangeCondition(py_trees.behaviour.Behaviour):
-    start_time: Optional[datetime.time]
-    end_time: Optional[datetime.time]
-
     def __init__(
         self, start_time: str, end_time: str, name: str = "TimeRangeCondition"
     ):
@@ -65,17 +61,19 @@ class TimeRangeCondition(py_trees.behaviour.Behaviour):
         super(TimeRangeCondition, self).__init__(name)
         self.start_time_str = start_time
         self.end_time_str = end_time
+        self.start_time: datetime_time | None = None
+        self.end_time: datetime_time | None = None
         try:
             # Parse the time strings to ensure they're valid
-            self.start_time = datetime.strptime(start_time, "%H:%M").time()
-            self.end_time = datetime.strptime(end_time, "%H:%M").time()
+            start_parsed = datetime.strptime(start_time, "%H:%M")
+            end_parsed = datetime.strptime(end_time, "%H:%M")
+            self.start_time = start_parsed.time()
+            self.end_time = end_parsed.time()
             self.logger.debug(
                 f"TimeRangeCondition initialized for {start_time}-{end_time}"
             )
         except ValueError as e:
             self.logger.error(f"Invalid time format: {e}")
-            self.start_time = None
-            self.end_time = None
 
     def update(self) -> py_trees.common.Status:
         if self.start_time is None or self.end_time is None:
@@ -309,7 +307,7 @@ class BehaviorTreeEngine:
         self.blackboard.battery_level = 100.0
 
         # Scheduler for time-based events (not fully integrated with BT yet)
-        self.scheduler = sched.scheduler(time.time, time.sleep)
+        self.scheduler = sched.scheduler(time_module.time, time_module.sleep)
 
         self.logger.debug("BehaviorTreeEngine initialized")
 
@@ -457,7 +455,7 @@ class BehaviorTreeEngine:
             return
 
         # Update current time on blackboard
-        self.blackboard.current_time = time.time()
+        self.blackboard.current_time = time_module.time()
 
         try:
             self.tree.tick()
@@ -507,7 +505,7 @@ if __name__ == "__main__":
                     print(
                         py_trees.display.ascii_tree(engine.tree.root, show_status=True)
                     )
-                    time.sleep(1)  # Simulate time passing
+                    time_module.sleep(1)  # Simulate time passing
                     if engine.tree.root.status == py_trees.common.Status.SUCCESS:
                         logger.info("Behavior tree completed successfully.")
                         break
