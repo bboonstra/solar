@@ -49,7 +49,10 @@ class INA219Runner(BaseRunner):
         """
         # Get runner-specific config
         self.label = config.get("label", runner_id)
-        self.i2c_address = config.get("i2c_address", 0x40)
+
+        # Convert hex string to integer for i2c_address
+        i2c_addr_str = config.get("i2c_address", "0x40")
+        self.i2c_address = int(i2c_addr_str, 16)
 
         # Create a config dict that matches the old structure for INA219PowerMonitor
         ina219_config = {

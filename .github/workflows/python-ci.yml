@@ -83,7 +83,7 @@ jobs:
 
       - name: Create test configuration files
         run: |
-          cp environment.example.yaml environment.yaml
+          cp configuration/environment.example.yaml configuration/environment.yaml
           # The config.yaml should already exist in the repo
 
       - name: Run tests with pytest

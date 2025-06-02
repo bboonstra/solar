@@ -1,0 +1,40 @@
+# Runner configurations
+runners:
+  # Solar power monitoring INA219
+  solar_power:
+    type: ina219
+    label: "Solar Power Monitor"
+    enabled: true
+    i2c_address: "0x40"
+    measurement_interval: 1.0
+    log_measurements: true
+    low_power_threshold: 0.5
+    high_power_threshold: 10.0
+
+  # Docked power monitoring INA219
+  docked_power:
+    type: ina219
+    label: "Docked Power Monitor"
+    enabled: false
+    i2c_address: "0x41"
+    measurement_interval: 1.0
+    log_measurements: true
+    low_power_threshold: 0.5
+    high_power_threshold: 15.0
+
+  # PiPower UPS monitoring
+  pipower:
+    type: pipower
+    label: "PiPower UPS Monitor"
+    enabled: true
+    measurement_interval: 1.0
+    log_readings: true
+    # GPIO pin configuration (BCM numbering)
+    bt_lv_pin: 17 # Battery voltage pin (requires ADC)
+    adc_channel: 0 # ADC channel for BT_LV (e.g., MCP3008 channel)
+    in_dt_pin: 18 # USB power input detect
+    chg_pin: 27 # Charging status
+    lo_dt_pin: 22 # Low battery detect
+    # Alert thresholds (consecutive readings)
+    low_battery_alert_threshold: 3
+    no_usb_alert_threshold: 3

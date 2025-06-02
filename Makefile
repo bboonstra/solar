@@ -54,7 +54,10 @@ run-demo:
 validate-config:
 	@python -c "from src.config_validator import validate_configuration_files; \
 	from pathlib import Path; \
-	result = validate_configuration_files(Path('config.yaml'), Path('environment.yaml')); \
+	result = validate_configuration_files( \
+		Path('configuration/solar.yaml'), \
+		Path('configuration/runners.yaml'), \
+		Path('configuration/environment.yaml')); \
 	print('Configuration is valid!' if result else 'Configuration has errors!')"
 
 # Documentation targets

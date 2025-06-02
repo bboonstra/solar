@@ -58,14 +58,14 @@ class ConfigValidator:
         self.errors: List[ValidationError] = []
         self.warnings: List[ValidationError] = []
 
-    def validate_config(
-        self, config: Dict[str, Any]
+    def validate_application_config(
+        self, app_config: Dict[str, Any]
     ) -> Tuple[bool, List[ValidationError], List[ValidationError]]:
         """
-        Validate the main configuration file.
+        Validate the application configuration section.
 
         Args:
-            config: Configuration dictionary to validate
+            app_config: Application configuration dictionary to validate
 
         Returns:
             Tuple of (is_valid, errors, warnings)
@@ -73,13 +73,29 @@ class ConfigValidator:
         self.errors = []
         self.warnings = []
 
-        # Validate top-level sections
-        self._validate_runners_config(config.get("runners", {}))
-        self._validate_application_config(config.get("application", {}))
-        self._validate_logging_config(config.get("logging", {}))
+        # Validate application section
+        self._validate_application_config(app_config)
+        self._validate_logging_config(app_config.get("logging", {}))
 
-        # Validate cross-section relationships
-        self._validate_cross_section_relationships(config)
+        return len(self.errors) == 0, self.errors, self.warnings
+
+    def validate_runners_config(
+        self, runners_config: Dict[str, Any]
+    ) -> Tuple[bool, List[ValidationError], List[ValidationError]]:
+        """
+        Validate the runners configuration section.
+
+        Args:
+            runners_config: Runners configuration dictionary to validate
+
+        Returns:
+            Tuple of (is_valid, errors, warnings)
+        """
+        self.errors = []
+        self.warnings = []
+
+        # Validate runners section
+        self._validate_runners_config(runners_config)
 
         return len(self.errors) == 0, self.errors, self.warnings
 
@@ -87,10 +103,10 @@ class ConfigValidator:
         self, env_config: Dict[str, Any]
     ) -> Tuple[bool, List[ValidationError], List[ValidationError]]:
         """
-        Validate the environment configuration file.
+        Validate the environment configuration.
 
         Args:
-            env_config: Environment configuration dictionary
+            env_config: Environment configuration dictionary to validate
 
         Returns:
             Tuple of (is_valid, errors, warnings)
@@ -98,33 +114,32 @@ class ConfigValidator:
         self.errors = []
         self.warnings = []
 
-        # Check for production flag
+        if not isinstance(env_config, dict):
+            self.errors.append(
+                ValidationError(
+                    "environment",
+                    "Must be a dictionary",
+                    value=type(env_config).__name__,
+                    expected="dictionary",
+                )
+            )
+            return False, self.errors, self.warnings
+
         if "production" not in env_config:
             self.errors.append(
                 ValidationError(
-                    "production", "Missing required field", expected="boolean value"
+                    "environment.production",
+                    "Missing required field",
+                    expected="boolean value",
                 )
             )
         elif not isinstance(env_config["production"], bool):
             self.errors.append(
                 ValidationError(
-                    "production",
-                    "Must be a boolean value",
-                    value=env_config["production"],
+                    "environment.production",
+                    "Must be a boolean",
+                    value=type(env_config["production"]).__name__,
                     expected="boolean",
-                )
-            )
-
-        # Check for any unknown fields
-        known_fields = {"production"}
-        unknown_fields = set(env_config.keys()) - known_fields
-        if unknown_fields:
-            self.warnings.append(
-                ValidationError(
-                    "environment",
-                    "Unknown fields found",
-                    value=unknown_fields,
-                    expected="only 'production'",
                 )
             )
 
@@ -132,7 +147,7 @@ class ConfigValidator:
 
     def _validate_runners_config(self, runners_config: Dict[str, Any]) -> None:
         """
-        Validate runners configuration section.
+        Validate runners configuration.
 
         Args:
             runners_config: Dictionary containing runners configuration
@@ -142,12 +157,11 @@ class ConfigValidator:
                 ValidationError(
                     "runners",
                     "Missing required section",
-                    expected="dictionary with runner configurations",
+                    expected="dictionary with runner settings",
                 )
             )
             return
 
-        # Validate each runner
         for runner_name, runner_config in runners_config.items():
             if not isinstance(runner_config, dict):
                 self.errors.append(
@@ -161,191 +175,107 @@ class ConfigValidator:
                 continue
 
             # Validate required fields
-            required_fields = {"type", "label", "enabled"}
-            missing_fields = required_fields - set(runner_config.keys())
-            if missing_fields:
-                self.errors.append(
-                    ValidationError(
-                        f"runners.{runner_name}",
-                        f"Missing required fields: {missing_fields}",
-                        expected=f"fields: {required_fields}",
-                    )
-                )
-
-            # Validate runner type
-            if "type" in runner_config:
-                try:
-                    runner_type = RunnerType(runner_config["type"])
-                except ValueError:
+            required_fields = ["type", "label", "enabled"]
+            for field in required_fields:
+                if field not in runner_config:
                     self.errors.append(
                         ValidationError(
-                            f"runners.{runner_name}.type",
-                            "Invalid runner type",
-                            value=runner_config["type"],
-                            expected=f"one of: {[t.value for t in RunnerType]}",
+                            f"runners.{runner_name}.{field}",
+                            "Missing required field",
+                            expected=f"string value for {field}",
                         )
                     )
-                else:
-                    # Validate type-specific fields
-                    if runner_type == RunnerType.INA219:
-                        self._validate_ina219_runner(runner_name, runner_config)
-                    elif runner_type == RunnerType.PIPOWER:
-                        self._validate_pipower_runner(runner_name, runner_config)
 
-    def _validate_ina219_runner(self, runner_name: str, config: Dict[str, Any]) -> None:
-        """Validate INA219 runner configuration."""
-        # Validate I2C address
-        if "i2c_address" not in config:
-            self.errors.append(
-                ValidationError(
-                    f"runners.{runner_name}.i2c_address",
-                    "Missing required field",
-                    expected="hexadecimal address (0x40, 0x41, 0x44, or 0x45)",
+            # Validate field types
+            if "enabled" in runner_config and not isinstance(
+                runner_config["enabled"], bool
+            ):
+                self.errors.append(
+                    ValidationError(
+                        f"runners.{runner_name}.enabled",
+                        "Must be a boolean",
+                        value=type(runner_config["enabled"]).__name__,
+                        expected="boolean",
+                    )
                 )
-            )
-        else:
-            valid_addresses = [0x40, 0x41, 0x44, 0x45]
-            if config["i2c_address"] not in valid_addresses:
+
+            if "measurement_interval" in runner_config:
+                interval = runner_config["measurement_interval"]
+                if not isinstance(interval, (int, float)) or interval <= 0:
+                    self.errors.append(
+                        ValidationError(
+                            f"runners.{runner_name}.measurement_interval",
+                            "Must be a positive number",
+                            value=str(interval),
+                            expected="positive number",
+                        )
+                    )
+
+            # Validate type-specific fields
+            runner_type = runner_config.get("type")
+            if runner_type == "ina219":
+                self._validate_ina219_config(runner_name, runner_config)
+            elif runner_type == "pipower":
+                self._validate_pipower_config(runner_name, runner_config)
+
+    def _validate_ina219_config(self, runner_name: str, config: Dict[str, Any]) -> None:
+        """Validate INA219 specific configuration."""
+        required_fields = ["i2c_address", "low_power_threshold", "high_power_threshold"]
+        for field in required_fields:
+            if field not in config:
+                self.errors.append(
+                    ValidationError(
+                        f"runners.{runner_name}.{field}",
+                        "Missing required field",
+                        expected=f"value for {field}",
+                    )
+                )
+
+        if "i2c_address" in config:
+            addr = config["i2c_address"]
+            if not isinstance(addr, str) or not addr.startswith("0x"):
                 self.errors.append(
                     ValidationError(
                         f"runners.{runner_name}.i2c_address",
-                        "Invalid I2C address",
-                        value=config["i2c_address"],
-                        expected=f"one of: {valid_addresses}",
+                        "Must be a hex string",
+                        value=str(addr),
+                        expected="hex string (e.g., '0x40')",
                     )
                 )
 
-        # Validate measurement interval
-        if "measurement_interval" in config:
-            interval = config["measurement_interval"]
-            if not isinstance(interval, (int, float)):
-                self.errors.append(
-                    ValidationError(
-                        f"runners.{runner_name}.measurement_interval",
-                        "Must be a number",
-                        value=type(interval).__name__,
-                        expected="number",
-                    )
-                )
-            elif interval <= 0:
-                self.errors.append(
-                    ValidationError(
-                        f"runners.{runner_name}.measurement_interval",
-                        "Must be positive",
-                        value=interval,
-                        expected="positive number",
-                    )
-                )
-            elif interval < 0.1:
-                self.warnings.append(
-                    ValidationError(
-                        f"runners.{runner_name}.measurement_interval",
-                        "Value may cause high CPU usage",
-                        value=interval,
-                        expected=">= 0.1",
-                    )
-                )
-
-        # Validate power thresholds
-        for threshold in ["low_power_threshold", "high_power_threshold"]:
-            if threshold in config:
-                value = config[threshold]
-                if not isinstance(value, (int, float)):
-                    self.errors.append(
-                        ValidationError(
-                            f"runners.{runner_name}.{threshold}",
-                            "Must be a number",
-                            value=type(value).__name__,
-                            expected="number",
-                        )
-                    )
-                elif value < 0:
-                    self.errors.append(
-                        ValidationError(
-                            f"runners.{runner_name}.{threshold}",
-                            "Must be non-negative",
-                            value=value,
-                            expected="non-negative number",
-                        )
-                    )
-
-        # Check threshold relationship
-        low = config.get("low_power_threshold", 0)
-        high = config.get("high_power_threshold", 100)
-        if low >= high:
-            self.errors.append(
-                ValidationError(
-                    f"runners.{runner_name}",
-                    "low_power_threshold must be less than high_power_threshold",
-                    value=f"low={low}, high={high}",
-                    expected="low < high",
-                )
-            )
-
-    def _validate_pipower_runner(
+    def _validate_pipower_config(
         self, runner_name: str, config: Dict[str, Any]
     ) -> None:
-        """Validate PiPower runner configuration."""
-        # Validate required GPIO pins
-        required_pins = {"bt_lv_pin", "in_dt_pin", "chg_pin", "lo_dt_pin"}
-        missing_pins = required_pins - set(config.keys())
-        if missing_pins:
-            self.errors.append(
-                ValidationError(
-                    f"runners.{runner_name}",
-                    f"Missing required GPIO pins: {missing_pins}",
-                    expected=f"pins: {required_pins}",
-                )
-            )
-
-        # Validate ADC channel
-        if "adc_channel" not in config:
-            self.errors.append(
-                ValidationError(
-                    f"runners.{runner_name}.adc_channel",
-                    "Missing required field",
-                    expected="ADC channel number (0-7)",
-                )
-            )
-        elif not isinstance(config["adc_channel"], int):
-            self.errors.append(
-                ValidationError(
-                    f"runners.{runner_name}.adc_channel",
-                    "Must be an integer",
-                    value=type(config["adc_channel"]).__name__,
-                    expected="integer",
-                )
-            )
-        elif not 0 <= config["adc_channel"] <= 7:
-            self.errors.append(
-                ValidationError(
-                    f"runners.{runner_name}.adc_channel",
-                    "Must be between 0 and 7",
-                    value=config["adc_channel"],
-                    expected="0-7",
-                )
-            )
-
-        # Validate alert thresholds
-        for threshold in ["low_battery_alert_threshold", "no_usb_alert_threshold"]:
-            if threshold in config:
-                value = config[threshold]
-                if not isinstance(value, int):
-                    self.errors.append(
-                        ValidationError(
-                            f"runners.{runner_name}.{threshold}",
-                            "Must be an integer",
-                            value=type(value).__name__,
-                            expected="integer",
-                        )
+        """Validate PiPower specific configuration."""
+        required_fields = [
+            "bt_lv_pin",
+            "adc_channel",
+            "in_dt_pin",
+            "chg_pin",
+            "lo_dt_pin",
+        ]
+        for field in required_fields:
+            if field not in config:
+                self.errors.append(
+                    ValidationError(
+                        f"runners.{runner_name}.{field}",
+                        "Missing required field",
+                        expected=f"value for {field}",
                     )
-                elif value < 1:
+                )
+
+        # Validate GPIO pin numbers
+        gpio_fields = ["bt_lv_pin", "in_dt_pin", "chg_pin", "lo_dt_pin"]
+        for field in gpio_fields:
+            if field in config:
+                pin = config[field]
+                if not isinstance(pin, int) or not 0 <= pin <= 27:
                     self.errors.append(
                         ValidationError(
-                            f"runners.{runner_name}.{threshold}",
-                            "Must be at least 1",
-                            value=value,
-                            expected=">= 1",
+                            f"runners.{runner_name}.{field}",
+                            "Must be a valid GPIO pin number",
+                            value=str(pin),
+                            expected="integer between 0 and 27",
                         )
                     )
 
@@ -524,12 +454,15 @@ class ConfigValidator:
             )
 
 
-def validate_configuration_files(config_path: Path, env_path: Path) -> bool:
+def validate_configuration_files(
+    solar_path: Path, runners_path: Path, env_path: Path
+) -> bool:
     """
-    Validate both configuration files and report any issues.
+    Validate configuration files and report any issues.
 
     Args:
-        config_path: Path to config.yaml
+        solar_path: Path to solar.yaml
+        runners_path: Path to runners.yaml
         env_path: Path to environment.yaml
 
     Returns:
@@ -539,30 +472,62 @@ def validate_configuration_files(config_path: Path, env_path: Path) -> bool:
     logger = logging.getLogger(__name__)
     all_valid = True
 
-    # Validate main config
+    # Validate solar config
     try:
-        with open(config_path, "r", encoding="utf-8") as f:
-            config = yaml.safe_load(f)
+        with open(solar_path, "r", encoding="utf-8") as f:
+            solar_config = yaml.safe_load(f)
 
-        is_valid, errors, warnings = validator.validate_config(config)
+        # Validate application and logging sections
+        is_valid, errors, warnings = validator.validate_application_config(
+            solar_config.get("application", {})
+        )
         all_valid = all_valid and is_valid
 
         if errors:
-            logger.error(f"Configuration validation errors in {config_path}:")
+            logger.error(f"Configuration validation errors in {solar_path}:")
             for error in errors:
                 logger.error(f"  - {error}")
             all_valid = False
 
         if warnings:
-            logger.warning(f"Configuration warnings in {config_path}:")
+            logger.warning(f"Configuration warnings in {solar_path}:")
             for warning in warnings:
                 logger.warning(f"  - {warning}")
 
     except FileNotFoundError:
-        logger.error(f"Configuration file not found: {config_path}")
+        logger.error(f"Configuration file not found: {solar_path}")
         all_valid = False
     except yaml.YAMLError as e:
-        logger.error(f"YAML parsing error in {config_path}: {e}")
+        logger.error(f"YAML parsing error in {solar_path}: {e}")
+        all_valid = False
+
+    # Validate runners config
+    try:
+        with open(runners_path, "r", encoding="utf-8") as f:
+            runners_config = yaml.safe_load(f)
+
+        # Validate runners section
+        is_valid, errors, warnings = validator.validate_runners_config(
+            runners_config.get("runners", {})
+        )
+        all_valid = all_valid and is_valid
+
+        if errors:
+            logger.error(f"Configuration validation errors in {runners_path}:")
+            for error in errors:
+                logger.error(f"  - {error}")
+            all_valid = False
+
+        if warnings:
+            logger.warning(f"Configuration warnings in {runners_path}:")
+            for warning in warnings:
+                logger.warning(f"  - {warning}")
+
+    except FileNotFoundError:
+        logger.error(f"Configuration file not found: {runners_path}")
+        all_valid = False
+    except yaml.YAMLError as e:
+        logger.error(f"YAML parsing error in {runners_path}: {e}")
         all_valid = False
 
     # Validate environment config

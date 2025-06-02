@@ -1,0 +1,42 @@
+# Bot configuration - this file can be tracked in git and remotely modified
+# Environment-specific settings (production vs development) are in environment.yaml
+# Main application configuration
+application:
+  # Enable/disable threaded runner system
+  threaded_runners: true
+  # Main loop interval in seconds
+  main_loop_interval: 2
+  # Graceful shutdown timeout in seconds
+  shutdown_timeout: 5.0
+  # Battery safety configuration
+  battery_safety:
+    # Minimum battery percentage before forcing return to dock
+    min_battery_threshold: 20.0
+    # Maximum allowed distance from dock as a factor of remaining battery
+    # e.g. 0.5 means at 50% battery, max distance is 25% of total range
+    max_distance_factor: 0.5
+    # How often to update battery level in the behavior tree (seconds)
+    update_interval: 1.0
+
+  logging:
+    # Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+    level: "DEBUG"
+    # Enable colorized logging output
+    colorized: true
+    # Enable debug mode
+    debug: true
+    # Individual color settings for each log level
+    colors:
+      DEBUG: "blue"
+      INFO: "white"
+      WARNING: "yellow"
+      ERROR: "red"
+      CRITICAL: "red,bg_yellow"
+    # Log format settings
+    format:
+      # Date format for timestamps
+      date_format: "%Y-%m-%d %H:%M:%S"
+      # Message format (with color placeholders)
+      message_format: "%(log_color)s%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+      # Simple format (without colors)
+      simple_format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"

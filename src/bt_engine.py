@@ -313,7 +313,7 @@ class BehaviorTreeEngine:
 
     def _load_yaml_config(self, file_name: str) -> dict:
         config_path = (
-            Path(SCRIPT_DIR) / "bt_config" / file_name
+            Path(SCRIPT_DIR) / file_name
         )  # Assuming SCRIPT_DIR is defined in main
         try:
             with open(config_path, "r") as f:

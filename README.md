@@ -96,9 +96,9 @@ Investigate how robotics can enhance environmental sustainability by automating 
 4. **Configure the application**
 
    ```bash
-   cp environment.example.yaml environment.yaml
-   # Edit environment.yaml to set production: true/false
-   # Edit config.yaml to configure sensors and behavior
+   cp configuration/environment.example.yaml configuration/environment.yaml
+   # Edit configuration/environment.yaml to set production: true/false
+   # Edit configuration/config.yaml to configure sensors and behavior
    ```
 
 5. **Run the application**
@@ -109,30 +109,16 @@ Investigate how robotics can enhance environmental sustainability by automating 
 
 ## 📋 Configuration
 
-### Environment Configuration (`environment.yaml`)
+### Environment Configuration (`configuration/environment.yaml`)
 
 ```yaml
 # Set to true when running on actual Raspberry Pi hardware
 production: false
 ```
 
-### Main Configuration (`config.yaml`)
+### Solar Configuration (`configuration/solar.yaml`)
 
 ```yaml
-# GPIO pin assignments
-gpio:
-  led_pin: 18
-  sensor_pin: 24
-
-# Power monitoring configuration
-ina219:
-  enabled: true
-  i2c_address: 0x40
-  measurement_interval: 1.0
-  log_measurements: true
-  low_power_threshold: 0.5
-  high_power_threshold: 10.0
-
 # Application settings
 application:
   threaded_runners: true
@@ -143,6 +129,36 @@ application:
 logging:
   level: "INFO"
   colorized: true
+```
+
+### Runners Configuration (`configuration/runners.yaml`)
+
+```yaml
+# Runner configurations
+runners:
+  # Solar power monitoring INA219
+  solar_power:
+    type: ina219
+    label: "Solar Power Monitor"
+    enabled: true
+    i2c_address: "0x40"
+    measurement_interval: 1.0
+    log_measurements: true
+    low_power_threshold: 0.5
+    high_power_threshold: 10.0
+
+  # PiPower UPS monitoring
+  pipower:
+    type: pipower
+    label: "PiPower UPS Monitor"
+    enabled: true
+    measurement_interval: 1.0
+    log_readings: true
+    bt_lv_pin: 17
+    adc_channel: 0
+    in_dt_pin: 18
+    chg_pin: 27
+    lo_dt_pin: 22
 ```
 
 ## 🧪 Development

@@ -48,7 +48,9 @@ from runners.runner_manager import RunnerManager
 
 
 # Get the directory where this script is located
-SCRIPT_DIR = Path(__file__).parent.parent  # Go up one level from src/ to project root
+SCRIPT_DIR = (
+    Path(__file__).parent.parent / "configuration"
+)  # Go up one level from src/ to configuration directory
 
 
 def setup_logging(config: Dict[str, Any]) -> logging.Logger:
@@ -126,33 +128,45 @@ def setup_logging(config: Dict[str, Any]) -> logging.Logger:
 
 def load_config() -> Dict[str, Any]:
     """
-    Load main configuration from config.yaml with validation.
+    Load configuration from solar.yaml and runners.yaml with validation.
 
     Returns:
         Validated configuration dictionary
 
     Raises:
-        FileNotFoundError: If config.yaml is not found
+        FileNotFoundError: If required config files are not found
         ValueError: If configuration is invalid
     """
-    config_path = SCRIPT_DIR / "config.yaml"
+    solar_path = SCRIPT_DIR / "solar.yaml"
+    runners_path = SCRIPT_DIR / "runners.yaml"
     env_path = SCRIPT_DIR / "environment.yaml"
 
     # Validate configuration files first
-    if not validate_configuration_files(config_path, env_path):
+    if not validate_configuration_files(solar_path, runners_path, env_path):
         raise ValueError(
             "Configuration validation failed. Please check the logs for details."
         )
 
     try:
-        with open(config_path, "r") as f:
-            return yaml.safe_load(f)
+        # Load solar config
+        with open(solar_path, "r") as f:
+            solar_config = yaml.safe_load(f)
+
+        # Load runners config
+        with open(runners_path, "r") as f:
+            runners_config = yaml.safe_load(f)
+
+        # Merge configurations
+        config = {**solar_config}  # Start with solar config
+        config.update(runners_config)  # Add runners config
+
+        return config
     except FileNotFoundError as exc:
         raise FileNotFoundError(
-            f"config.yaml not found at {config_path}. Please ensure it exists in the project root."
+            f"Required configuration files not found. Please ensure solar.yaml and runners.yaml exist in {SCRIPT_DIR}."
         ) from exc
     except yaml.YAMLError as e:
-        raise ValueError(f"Invalid YAML in config.yaml: {e}") from e
+        raise ValueError(f"Invalid YAML in configuration files: {e}") from e
 
 
 def load_environment_config(logger: logging.Logger) -> bool:
