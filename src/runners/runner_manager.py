@@ -6,7 +6,6 @@ It handles startup, shutdown, monitoring, and status reporting for all runners.
 """
 
 import logging
-import signal
 import time
 from dataclasses import dataclass
 from typing import Any, Dict, Optional, Type
@@ -75,20 +74,7 @@ class RunnerManager:
         self.main_loop_interval = app_config.get("main_loop_interval", 0.1)
         self.shutdown_timeout = app_config.get("shutdown_timeout", 5.0)
 
-        # Setup signal handling
-        self._setup_signal_handlers()
-
         self.logger.info("Runner manager initialized")
-
-    def _setup_signal_handlers(self) -> None:
-        """Setup signal handlers for graceful shutdown."""
-
-        def signal_handler(signum, frame):
-            self.logger.info(f"Received signal {signum}, initiating graceful shutdown")
-            self.shutdown()
-
-        signal.signal(signal.SIGINT, signal_handler)
-        signal.signal(signal.SIGTERM, signal_handler)
 
     def register_runner(self, runner_id: str, runner_config: Dict[str, Any]) -> bool:
         """
