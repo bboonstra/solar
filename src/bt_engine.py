@@ -148,9 +148,7 @@ class NavigateToTarget(py_trees.behaviour.Behaviour):
             )
             self._target_coords = None
         except Exception as e:
-            self.logger.error(
-                f"[{self.name}] - Unexpected error during setup: {e}", exc_info=True
-            )
+            self.logger.error(f"[{self.name}] - Unexpected error during setup: {e}")
             self._target_coords = None
         self.logger.debug(
             f"[{self.name}] - setup() finished. Target coords: {self._target_coords}"
@@ -198,7 +196,7 @@ class BehaviorTreeEngine:
         self.config = config
         self.production = production
         self.logger = logging.getLogger(__name__)
-        self.tree = None
+        self.tree: py_trees.trees.BehaviourTree | None = None
 
         # Get battery safety configuration
         battery_safety_config = config.get("application", {}).get("battery_safety", {})
@@ -274,7 +272,9 @@ class BehaviorTreeEngine:
             self.logger.info("Behavior tree built successfully.")
             # Call setup() on the tree to initialize all behaviors
             self.tree.setup()
-            py_trees.display.ascii_tree(self.tree.root, show_status=True)
+            self.logger.info(
+                "\n" + py_trees.display.ascii_tree(self.tree.root, show_status=True)
+            )
             return True
         else:
             self.logger.error("Failed to build behavior tree.")
@@ -351,9 +351,10 @@ class BehaviorTreeEngine:
             )
             return None
 
-        return py_trees.trees.BehaviourTree(root=root)
+        tree = py_trees.trees.BehaviourTree(root=root)
+        return tree
 
-    def tick(self):
+    def tick(self) -> None:
         """Tick the behavior tree and update blackboard."""
         if not self.tree or not self.tree.root:
             self.logger.warning(
@@ -398,7 +399,7 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger(__name__)
 
-    mock_config = {"application": {}}  # Mock main config
+    mock_config: dict = {"application": {}}  # Mock main config
 
     engine = BehaviorTreeEngine(config=mock_config, production=False)
 
@@ -408,14 +409,17 @@ if __name__ == "__main__":
             for i in range(20):  # Simulate a few ticks
                 logger.info(f"--- Tick {i+1} ---")
                 engine.tick()
-                py_trees.display.print_ascii_tree(engine.tree.root, show_status=True)
-                time.sleep(1)  # Simulate time passing
-                if engine.tree.root.status == py_trees.common.Status.SUCCESS:
-                    logger.info("Behavior tree completed successfully.")
-                    break
-                if engine.tree.root.status == py_trees.common.Status.FAILURE:
-                    logger.info("Behavior tree failed.")
-                    break
+                if engine.tree is not None and engine.tree.root is not None:
+                    print(
+                        py_trees.display.ascii_tree(engine.tree.root, show_status=True)
+                    )
+                    time.sleep(1)  # Simulate time passing
+                    if engine.tree.root.status == py_trees.common.Status.SUCCESS:
+                        logger.info("Behavior tree completed successfully.")
+                        break
+                    if engine.tree.root.status == py_trees.common.Status.FAILURE:
+                        logger.info("Behavior tree failed.")
+                        break
         except KeyboardInterrupt:
             logger.info("Test interrupted.")
         finally:

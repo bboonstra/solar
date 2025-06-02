@@ -123,7 +123,7 @@ class RunnerManager:
                     runner = runner_class(runner_id, runner_config, self.production)
 
                     if not runner.enabled:
-                        self.logger.info(
+                        self.logger.warning(
                             f"Runner '{runner_id}' is disabled in configuration"
                         )
                     else:
