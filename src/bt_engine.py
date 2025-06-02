@@ -1,6 +1,7 @@
 import logging  # Added logging
 import sched  # Added sched for time-based events
 import time  # Added time for sched
+from datetime import datetime
 from pathlib import Path
 
 import py_trees
@@ -12,17 +13,89 @@ import yaml
 
 class TimeCondition(py_trees.behaviour.Behaviour):
     def __init__(self, time_str: str, name: str = "TimeCondition"):
+        """
+        Initialize a time condition that checks if current time has reached or passed the target time.
+
+        Args:
+            time_str: Target time in HH:MM format
+            name: Name of the behavior node
+        """
         super(TimeCondition, self).__init__(name)
         self.target_time_str = time_str
-        self.logger.debug(f"TimeCondition initialized for {time_str}")
+        try:
+            # Parse the time string to ensure it's valid
+            self.target_time = datetime.strptime(time_str, "%H:%M").time()
+            self.logger.debug(f"TimeCondition initialized for {time_str}")
+        except ValueError as e:
+            self.logger.error(f"Invalid time format {time_str}: {e}")
+            self.target_time = None
 
     def update(self) -> py_trees.common.Status:
-        # Simplified time check for now
-        # In a real system, this would use a scheduler or more robust time comparison
-        current_time_str = time.strftime("%H:%M")
-        if current_time_str >= self.target_time_str:
+        if self.target_time is None:
+            self.logger.error("Invalid target time")
+            return py_trees.common.Status.FAILURE
+
+        current_time = datetime.now().time()
+
+        # Compare times
+        if current_time >= self.target_time:
             self.logger.debug(f"TimeCondition met: {self.target_time_str}")
             return py_trees.common.Status.SUCCESS
+        return py_trees.common.Status.RUNNING
+
+
+class TimeRangeCondition(py_trees.behaviour.Behaviour):
+    def __init__(
+        self, start_time: str, end_time: str, name: str = "TimeRangeCondition"
+    ):
+        """
+        Initialize a time range condition that checks if current time is within a specified range.
+
+        Args:
+            start_time: Start time in HH:MM format
+            end_time: End time in HH:MM format
+            name: Name of the behavior node
+        """
+        super(TimeRangeCondition, self).__init__(name)
+        self.start_time_str = start_time
+        self.end_time_str = end_time
+        try:
+            # Parse the time strings to ensure they're valid
+            self.start_time = datetime.strptime(start_time, "%H:%M").time()
+            self.end_time = datetime.strptime(end_time, "%H:%M").time()
+            self.logger.debug(
+                f"TimeRangeCondition initialized for {start_time}-{end_time}"
+            )
+        except ValueError as e:
+            self.logger.error(f"Invalid time format: {e}")
+            self.start_time = None
+            self.end_time = None
+
+    def update(self) -> py_trees.common.Status:
+        if self.start_time is None or self.end_time is None:
+            self.logger.error("Invalid time range")
+            return py_trees.common.Status.FAILURE
+
+        current_time = datetime.now().time()
+
+        # Handle case where range crosses midnight
+        if self.start_time > self.end_time:
+            # Range crosses midnight, so we check if current time is either:
+            # 1. After start time OR
+            # 2. Before end time
+            if current_time >= self.start_time or current_time <= self.end_time:
+                self.logger.debug(
+                    f"TimeRangeCondition met: {self.start_time_str}-{self.end_time_str}"
+                )
+                return py_trees.common.Status.SUCCESS
+        else:
+            # Normal range within same day
+            if self.start_time <= current_time <= self.end_time:
+                self.logger.debug(
+                    f"TimeRangeCondition met: {self.start_time_str}-{self.end_time_str}"
+                )
+                return py_trees.common.Status.SUCCESS
+
         return py_trees.common.Status.RUNNING
 
 
@@ -313,16 +386,30 @@ class BehaviorTreeEngine:
         for i, task_config in enumerate(tasks_config):
             task_name = task_config.get("type", f"Task_{i}")
             task_time = task_config.get("time")
+            task_time_range = task_config.get("time_range")
 
             task_sequence = py_trees.composites.Sequence(
-                name=f"{task_name}@{task_time or i}", memory=True
+                name=f"{task_name}@{task_time or task_time_range or i}", memory=True
             )
 
-            if task_time:
+            # Handle time-based conditions
+            if task_time_range:
+                # If task has a time range, use TimeRangeCondition
+                start_time, end_time = task_time_range.split("-")
+                task_sequence.add_child(
+                    TimeRangeCondition(
+                        start_time=start_time.strip(),
+                        end_time=end_time.strip(),
+                        name=f"WaitFor_{start_time}-{end_time}",
+                    )
+                )
+            elif task_time:
+                # If task has a specific time, use TimeCondition
                 task_sequence.add_child(
                     TimeCondition(time_str=task_time, name=f"WaitFor_{task_time}")
                 )
 
+            # Handle navigation tasks
             if task_config.get("type") == "navigation":
                 target = task_config.get("target")
                 if target:
@@ -332,6 +419,7 @@ class BehaviorTreeEngine:
                 else:
                     self.logger.warning(f"Navigation task {task_name} has no target.")
 
+            # Add action nodes
             for action_str in task_config.get("actions", []):
                 task_sequence.add_child(create_action_node(action_str))
 

@@ -1,19 +1,56 @@
+# Daily schedule for solar-powered robot
+# Tasks are ordered by priority and time
+# Time ranges are used for tasks that can be done within a window
+# Specific times are used for critical tasks that must happen at exact times
+
 tasks:
+  # Early morning system checks and preparation
   - time: "06:45"
     type: "system_check"
-    actions: ["battery_status", "sensor_check"]
+    actions: ["battery_status", "sensor_check", "system_diagnostics"]
 
-  - time: "07:00"
+  # Morning watering window - can be done anytime in this range when conditions are optimal
+  - time_range: "07:00-10:00"
     type: "navigation"
     target: "PlantA"
     actions: ["water", "soil_analysis"]
+    # This task will run when:
+    # 1. Time is between 7 AM and 10 AM
+    # 2. Battery level is sufficient
+    # 3. Solar power is available
 
+  # Mid-morning maintenance window
+  - time_range: "10:00-12:00"
+    type: "navigation"
+    target: "PlantB"
+    actions: ["pest_control", "weed_detection"]
+    # Flexible timing allows for optimal solar power usage
+
+  # Critical charging time - must happen at specific time to ensure full charge
   - time: "12:30"
     type: "navigation"
     target: "Dock"
     actions: ["charge"]
+    # Fixed time to ensure charging during peak solar hours
 
-  - time: "14:00"
+  # Afternoon maintenance window
+  - time_range: "14:00-16:00"
     type: "navigation"
-    target: "PlantB"
-    actions: ["pest_control"]
+    target: "PlantA"
+    actions: ["pest_control", "growth_monitoring"]
+    # Flexible timing for afternoon tasks
+
+  # Evening system check and return to dock
+  - time_range: "16:00-18:00"
+    type: "navigation"
+    target: "Dock"
+    actions: ["system_check", "data_upload", "charge"]
+    # Must complete before sunset
+    # Will prioritize returning to dock if battery is low
+
+  # Night mode maintenance (only if battery is sufficient)
+  - time_range: "22:00-04:00"
+    type: "system_check"
+    actions: ["night_vision_check", "security_scan"]
+    # Optional night tasks that only run if battery level is high enough
+    # Crosses midnight to handle overnight operations
