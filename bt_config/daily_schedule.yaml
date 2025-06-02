@@ -1,0 +1,19 @@
+tasks:
+  - time: "06:45"
+    type: "system_check"
+    actions: ["battery_status", "sensor_check"]
+
+  - time: "07:00"
+    type: "navigation"
+    target: "PlantA"
+    actions: ["water", "soil_analysis"]
+
+  - time: "12:30"
+    type: "navigation"
+    target: "Dock"
+    actions: ["charge"]
+
+  - time: "14:00"
+    type: "navigation"
+    target: "PlantB"
+    actions: ["pest_control"]

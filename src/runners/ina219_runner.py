@@ -96,7 +96,7 @@ class INA219Runner(BaseRunner):
 
             # Take a test reading to verify functionality
             test_reading = self.power_monitor.get_reading()
-            self.logger.info(
+            self.logger.debug(
                 f"{self.label} initialized successfully - "
                 f"Test reading: {test_reading.voltage:.2f}V, "
                 f"{test_reading.current:.3f}A, {test_reading.power:.2f}W"
@@ -123,7 +123,7 @@ class INA219Runner(BaseRunner):
 
             # Log the reading if enabled
             if self.log_measurements:
-                self.logger.info(
+                self.logger.debug(
                     f"{self.label} - V: {reading.voltage:.2f}V, "
                     f"I: {reading.current:.3f}A, P: {reading.power:.2f}W"
                 )
@@ -231,7 +231,7 @@ class INA219Runner(BaseRunner):
     def _cleanup(self) -> None:
         """Cleanup INA219-specific resources."""
         if self.power_monitor:
-            self.logger.info("Cleaning up INA219 power monitor")
+            self.logger.debug("Cleaning up INA219 power monitor")
             # INA219PowerMonitor doesn't have explicit cleanup,
             # but we can clear our reference
             self.power_monitor = None

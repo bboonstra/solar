@@ -128,7 +128,7 @@ class RunnerManager:
                         )
                     else:
                         self._runners[runner_id] = runner
-                        self.logger.info(
+                        self.logger.debug(
                             f"Registered runner: {runner_id} ({runner_type})"
                         )
                         success = True
@@ -160,7 +160,7 @@ class RunnerManager:
             self.logger.warning("No runners registered")
             return True
 
-        self.logger.info(f"Starting {len(self._runners)} registered runners...")
+        self.logger.debug(f"Starting {len(self._runners)} registered runners...")
 
         success_count = 0
         for name, runner in self._runners.items():
@@ -191,13 +191,13 @@ class RunnerManager:
         if not self._runners:
             return True
 
-        self.logger.info(f"Stopping {len(self._runners)} runners...")
+        self.logger.debug(f"Stopping {len(self._runners)} runners...")
 
         success_count = 0
         for name, runner in self._runners.items():
             if runner.stop(self.shutdown_timeout):
                 success_count += 1
-                self.logger.info(f"Stopped runner: {name}")
+                self.logger.debug(f"Stopped runner: {name}")
             else:
                 self.logger.warning(f"Runner '{name}' did not stop gracefully")
 

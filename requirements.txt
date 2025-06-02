@@ -26,3 +26,4 @@ types-PyYAML==6.0.12.20250516
 typing_extensions==4.13.2
 tzdata==2025.2
 wheel==0.45.1
+py_trees==2.3.0

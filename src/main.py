@@ -32,13 +32,20 @@ import time
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+import py_trees
 import yaml
+
+# NEW: Import Behavior Tree Engine
+from bt_engine import BehaviorTreeEngine
 
 # Import configuration validator
 from config_validator import validate_configuration_files
 
+# NEW: Import RunnerManager for threaded runners
+from runners.runner_manager import RunnerManager
+
 # Import the specific error for better handling
-from sensors.ina219_power_monitor import SensorReadError
+
 
 # Get the directory where this script is located
 SCRIPT_DIR = Path(__file__).parent.parent  # Go up one level from src/ to project root
@@ -177,12 +184,19 @@ def load_gpio_module(production: bool, logger: logging.Logger) -> Optional[Any]:
 
             logger.info("Loaded RPi.GPIO for production environment")
         else:
-            import FakeRPi.GPIO as GPIO  # type: ignore
+            # Ensure FakeRPi is available or provide guidance
+            try:
+                import FakeRPi.GPIO as GPIO  # type: ignore
 
-            logger.info("Loaded FakeRPi.GPIO for development environment")
+                logger.info("Loaded FakeRPi.GPIO for development environment")
+            except ImportError:
+                logger.error(
+                    "FakeRPi.GPIO not found. Please install it for development: pip install FakeRPi"
+                )
+                return None
         return GPIO
     except ImportError as e:
-        logger.error(f"Could not import GPIO module: {e}")
+        logger.critical(f"Could not import GPIO module: {e}")
         logger.info("Please install the appropriate GPIO library:")
         logger.info(f"  pip install {'RPi.GPIO' if production else 'FakeRPi'}")
         return None
@@ -204,178 +218,64 @@ def main() -> None:
         logger.info("GPIO module loaded successfully - ready for hardware operations")
     else:
         logger.error("GPIO module not available - hardware operations will fail")
+        # Optionally, decide if the application can continue without GPIO
+        # For a robot, this might be critical, so we could exit or run in a limited mode.
+        # For now, we'll let it continue and the BT can decide what to do.
 
-    # Initialize and run the threaded runner system
+    # NEW: Initialize and start the RunnerManager (threaded runners)
+    runner_manager = RunnerManager(config, production)
+    if not runner_manager.start():
+        logger.critical("Failed to start RunnerManager. Exiting.")
+        return
+    logger.info("RunnerManager started successfully.")
+
+    # Initialize and run the Behavior Tree Engine
+    bt_engine = BehaviorTreeEngine(config, production)
+
+    if not bt_engine.setup():
+        logger.critical("Failed to set up Behavior Tree Engine. Exiting.")
+        runner_manager.shutdown()
+        return
+
+    logger.info("Starting SOLAR robot with Behavior Tree system...")
+
     try:
-        from runners import RunnerManager
+        # Main application loop - tick the Behavior Tree
+        while True:  # Loop indefinitely, BT controls flow
+            bt_engine.tick()
 
-        # Create the runner manager
-        runner_manager = RunnerManager(config, production)
-        logger.info("Runner manager initialized successfully")
+            # Check if the main BT sequence has finished or failed
+            if bt_engine.tree and bt_engine.tree.root.status in [
+                py_trees.common.Status.SUCCESS,  # type: ignore
+                py_trees.common.Status.FAILURE,  # type: ignore
+            ]:
+                logger.info(
+                    f"Behavior tree execution finished with status: {bt_engine.tree.root.status}"
+                )
+                break  # Exit main loop if BT is done
 
-        # Check if threaded runners are enabled
-        if not runner_manager.threaded_runners_enabled:
-            logger.info("Threaded runners disabled in configuration")
-            logger.info("Running in legacy mode - this is deprecated")
-            _run_legacy_mode(config, production, logger)
-            return
+            time.sleep(config.get("application", {}).get("bt_tick_interval", 0.1))
 
-        # Run the main application loop with runners
-        logger.info("Starting SOLAR robot with threaded runner system...")
-
-        try:
-            # Start the runner manager (this will auto-register and start runners)
-            if runner_manager.start():
-                logger.info("All runners started successfully")
-
-                # Main application loop
-                logger.info("Entering main application loop...")
-                _run_main_loop(runner_manager, logger)
-
-            else:
-                logger.error("Failed to start runner manager")
-
-        except KeyboardInterrupt:
-            logger.info("Application interrupted by user")
-        except Exception as e:
-            logger.error(f"Error in main application loop: {e}")
-        finally:
-            # Graceful shutdown
-            logger.info("Initiating graceful shutdown...")
+    except KeyboardInterrupt:
+        logger.info("Application interrupted by user")
+    except Exception as e:
+        logger.error(f"Error in main application loop: {e}", exc_info=True)
+    finally:
+        # Graceful shutdown
+        logger.info("Initiating graceful shutdown...")
+        if bt_engine:
+            bt_engine.shutdown()
+        # NEW: Shutdown the runner manager
+        if runner_manager:
             runner_manager.shutdown()
-            logger.info("Application shutdown complete")
-
-    except ImportError as e:
-        logger.error(f"Could not import RunnerManager: {e}")
-        logger.info("Falling back to legacy mode")
-        _run_legacy_mode(config, production, logger)
-    except Exception as e:
-        logger.error(f"Failed to initialize or run threaded system: {e}")
-
-
-def _run_main_loop(runner_manager, logger: logging.Logger) -> None:
-    """
-    Run the main application loop with periodic status reports.
-
-    Args:
-        runner_manager: The RunnerManager instance
-        logger: Logger instance
-    """
-    status_report_interval = 30.0  # Report status every 30 seconds
-    last_status_report = time.time()
-
-    while runner_manager.is_running:
-        try:
-            # Check if it's time for a status report
-            current_time = time.time()
-            if current_time - last_status_report >= status_report_interval:
-                logger.info("Generating periodic status report...")
-                runner_manager.print_status_report()
-                last_status_report = current_time
-
-                # Log power readings if INA219 runner is available
-                ina219_runner = runner_manager.get_runner("ina219")
-                if ina219_runner and hasattr(ina219_runner, "get_last_reading"):
-                    last_reading = ina219_runner.get_last_reading()
-                    if last_reading:
-                        logger.info(
-                            f"Latest Power Reading - V: {last_reading.voltage:.2f}V, "
-                            f"I: {last_reading.current:.3f}A, P: {last_reading.power:.2f}W"
-                        )
-
-                    # Log power statistics
-                    if hasattr(ina219_runner, "get_power_stats"):
-                        stats = ina219_runner.get_power_stats()
-                        if stats:
-                            logger.info(
-                                f"Power Statistics - Avg: {stats.avg_power:.2f}W, "
-                                f"Min: {stats.min_power:.2f}W, Max: {stats.max_power:.2f}W "
-                                f"({stats.sample_count} samples)"
-                            )
-
-            # Sleep for a short interval
-            time.sleep(1.0)
-
-        except KeyboardInterrupt:
-            logger.info("Main loop interrupted")
-            break
-        except Exception as e:
-            logger.error(f"Error in main loop: {e}")
-            time.sleep(1.0)  # Brief pause before continuing
-
-
-def _run_legacy_mode(
-    config: Dict[str, Any], production: bool, logger: logging.Logger
-) -> None:
-    """
-    Run the legacy single-threaded mode (deprecated).
-
-    This is kept for backwards compatibility but should be phased out.
-    """
-    logger.warning("Running in legacy mode - please enable threaded_runners in config")
-
-    # Initialize INA219 Power Monitor directly (legacy approach)
-    try:
-        from sensors import INA219PowerMonitor
-
-        power_monitor = INA219PowerMonitor(config, production)
-        logger.info("INA219 Power Monitor initialized successfully")
-
-        # Demonstrate power monitoring in a loop
-        logger.info("Starting legacy power monitoring demonstration...")
-
-        for i in range(10):  # Take 10 readings
+        # Add any other cleanup if necessary (e.g., GPIO cleanup if managed here)
+        if gpio and hasattr(gpio, "cleanup"):
             try:
-                # Get a power reading
-                reading = power_monitor.get_reading()
-
-                # Log the reading
-                logger.info(
-                    f"Reading {i + 1}: V={reading.voltage:.2f}V, "
-                    f"I={reading.current:.3f}A, P={reading.power:.2f}W"
-                )
-
-                # Check if we're in a healthy state
-                if not power_monitor.is_healthy():
-                    logger.warning("Power monitor reported as unhealthy!")
-
-                # Wait before next reading
-                time.sleep(power_monitor.measurement_interval)
-
-            except SensorReadError as sre:
-                logger.error(f"Sensor read error during monitoring loop: {sre}")
-                logger.info(
-                    "This might indicate a hardware issue or a problem with the sensor adapter."
-                )
-                # Depending on severity, we might want to break, retry, or enter a degraded mode.
-                # For this example, we'll break the loop.
-                logger.info(
-                    "Stopping power monitoring demonstration due to sensor error."
-                )
-                break
-            except KeyboardInterrupt:
-                logger.info("Interrupted by user")
-                break
+                gpio.cleanup()  # type: ignore
+                logger.info("GPIO cleanup successful.")
             except Exception as e:
-                logger.error(f"Error during power monitoring: {e}")
-                break
-
-        # Show final status
-        status = power_monitor.get_status()
-        logger.info(f"Power monitoring complete. Final status: {status}")
-
-    except ImportError as e:
-        logger.error(f"Could not import INA219PowerMonitor: {e}")
-        logger.info("Make sure the sensors module is properly installed")
-    except SensorReadError as sre_init:  # Catch SensorReadError during initialization
-        logger.critical(
-            f"Failed to initialize INA219 Power Monitor due to sensor error: {sre_init}"
-        )
-        logger.info(
-            "Please check hardware connections if in production, or simulation setup."
-        )
-    except Exception as e:
-        logger.error(f"Failed to initialize or run power monitoring: {e}")
+                logger.error(f"Error during GPIO cleanup: {e}")
+        logger.info("Application shutdown complete")
 
 
 if __name__ == "__main__":

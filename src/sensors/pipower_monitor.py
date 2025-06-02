@@ -309,7 +309,7 @@ class SimulatedPiPowerAdapter(PiPowerSensorAdapter):
         return reading
 
     def cleanup(self) -> None:
-        self.logger.info("SimulatedPiPowerAdapter cleanup (no action needed).")
+        self.logger.debug("SimulatedPiPowerAdapter cleaned up.")
 
 
 class PiPowerMonitor:
@@ -489,7 +489,7 @@ class PiPowerMonitor:
         """Cleanup resources used by the sensor adapter."""
         if hasattr(self, "sensor_adapter") and self.sensor_adapter:
             self.sensor_adapter.cleanup()
-        self.logger.info("PiPowerMonitor cleaned up.")
+        self.logger.debug("PiPowerMonitor cleaned up.")
 
 
 # Example usage (for testing purposes)

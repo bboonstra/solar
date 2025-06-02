@@ -143,7 +143,7 @@ class SimulatedINA219Adapter(PowerSensorAdapter):
         self.initialize()
 
     def initialize(self) -> None:
-        self.logger.info("Simulated INA219 sensor initialized.")
+        self.logger.debug("Simulated INA219 sensor initialized.")
         # No actual hardware to initialize
 
     def read_voltage(self) -> float:
@@ -194,7 +194,7 @@ class INA219PowerMonitor:
         self._last_reading: Optional[PowerReading] = None
         self._init_sensor_adapter()
 
-        self.logger.info(
+        self.logger.debug(
             f"INA219 Power Monitor initialized - Address: 0x{self.i2c_address:02X}, "
             f"Mode: {'Production' if production else 'Development'}"
         )
@@ -287,7 +287,7 @@ class INA219PowerMonitor:
             self._last_reading = reading
 
             if self.log_measurements:
-                self.logger.info(
+                self.logger.debug(
                     f"Power Reading - V: {voltage:.2f}V, I: {current:.3f}A, P: {power:.2f}W"
                 )
 

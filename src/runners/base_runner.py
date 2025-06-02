@@ -79,8 +79,20 @@ class BaseRunner(abc.ABC):
 
         # Configuration
         self.interval = self._get_config_value("measurement_interval", 1.0)
+        # NEW: Behavior and trigger configuration for runners
+        self.run_behavior = self._get_config_value(
+            "run_behavior", "continuous"
+        )  # continuous, scheduled, triggered
+        self.trigger_condition = self._get_config_value(
+            "trigger_condition", None
+        )  # e.g., {"blackboard_key": "value"}
+        self.schedule_time = self._get_config_value(
+            "schedule_time", None
+        )  # e.g., "HH:MM" for daily schedule
 
-        self.logger.info(f"Runner '{name}' initialized - Enabled: {self._enabled}")
+        self.logger.debug(
+            f"Runner '{name}' initialized - Enabled: {self._enabled}, Behavior: {self.run_behavior}"
+        )
 
     def _get_config_value(self, key: str, default: Any) -> Any:
         """Get a configuration value with a default fallback."""
@@ -105,7 +117,9 @@ class BaseRunner(abc.ABC):
     def set_enabled(self, enabled: bool) -> None:
         """Enable or disable the runner."""
         self._enabled = enabled
-        self.logger.info(f"Runner '{self.name}' {'enabled' if enabled else 'disabled'}")
+        self.logger.debug(
+            f"Runner '{self.name}' {'enabled' if enabled else 'disabled'}"
+        )
 
     def start(self) -> bool:
         """
@@ -115,7 +129,7 @@ class BaseRunner(abc.ABC):
             True if started successfully, False otherwise
         """
         if not self._enabled:
-            self.logger.info(f"Runner '{self.name}' is disabled, not starting")
+            self.logger.warning(f"Runner '{self.name}' is disabled, not starting")
             return False
 
         with self._state_lock:
@@ -147,7 +161,7 @@ class BaseRunner(abc.ABC):
             with self._state_lock:
                 self._state = RunnerState.RUNNING
 
-            self.logger.info(f"Runner '{self.name}' started successfully")
+            self.logger.debug(f"Runner '{self.name}' started successfully")
             return True
 
         except Exception as e:
@@ -171,7 +185,7 @@ class BaseRunner(abc.ABC):
                 return True
             self._state = RunnerState.STOPPING
 
-        self.logger.info(f"Stopping runner '{self.name}'...")
+        self.logger.debug(f"Stopping runner '{self.name}'...")
         self._stop_event.set()
 
         if self._thread and self._thread.is_alive():
@@ -187,7 +201,7 @@ class BaseRunner(abc.ABC):
         with self._state_lock:
             self._state = RunnerState.STOPPED
 
-        self.logger.info(f"Runner '{self.name}' stopped")
+        self.logger.debug(f"Runner '{self.name}' stopped")
         return True
 
     def get_status(self) -> RunnerStatus:
@@ -195,6 +209,13 @@ class BaseRunner(abc.ABC):
         uptime = 0.0
         if self._start_time:
             uptime = time.time() - self._start_time
+
+        # Ensure last_activity is serializable (float or None)
+        last_activity_ts = self._last_activity
+        if isinstance(last_activity_ts, time.struct_time):
+            last_activity_ts = time.mktime(
+                last_activity_ts
+            )  # Convert to float if it's struct_time
 
         return RunnerStatus(
             name=self.name,
@@ -204,7 +225,7 @@ class BaseRunner(abc.ABC):
             error_count=self._error_count,
             last_error=self._last_error,
             uptime=uptime,
-            last_activity=self._last_activity,
+            last_activity=last_activity_ts,  # Use converted timestamp
         )
 
     def _run(self) -> None:
@@ -213,6 +234,14 @@ class BaseRunner(abc.ABC):
 
         try:
             while not self._stop_event.is_set():
+                # NEW: Check if runner should execute based on its behavior type
+                if not self._should_execute_now():
+                    if self._stop_event.wait(
+                        self.interval
+                    ):  # Still respect interval for checking stop event
+                        break
+                    continue  # Skip work cycle if conditions not met
+
                 try:
                     # Update activity timestamp
                     self._last_activity = time.time()
@@ -296,3 +325,29 @@ class BaseRunner(abc.ABC):
         # Default behavior: log and continue for most errors
         # Override this method for custom error handling
         return True
+
+    # NEW: Methods to control execution based on run_behavior
+    def _should_execute_now(self, blackboard: Optional[Dict[str, Any]] = None) -> bool:
+        """Determines if the runner should execute its work_cycle based on its run_behavior."""
+        if not self._enabled:
+            return False
+
+        current_time_str = time.strftime("%H:%M")
+
+        if self.run_behavior == "continuous":
+            return True
+        elif self.run_behavior == "scheduled":
+            if self.schedule_time and current_time_str == self.schedule_time:
+                # Basic check, could be made more robust (e.g., run once per scheduled time)
+                return True
+            return False
+        elif self.run_behavior == "triggered":
+            if self.trigger_condition and blackboard:
+                for key, expected_value in self.trigger_condition.items():
+                    if blackboard.get(key) != expected_value:
+                        return False  # Condition not met
+                return True  # All conditions met
+            return False  # No trigger condition or blackboard
+
+        # Default to not running if behavior is unknown or not properly configured
+        return False

@@ -1,0 +1,11 @@
+Dock:
+  x: 0
+  y: 0
+
+PlantA:
+  x: 520
+  y: 76
+
+PlantB:
+  x: 100
+  y: 200

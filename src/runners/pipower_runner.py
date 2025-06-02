@@ -10,6 +10,8 @@ from collections import deque
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
+import py_trees
+
 from sensors.pipower_monitor import PiPowerMonitor, PiPowerReading, SensorReadError
 
 from .base_runner import BaseRunner
@@ -70,6 +72,21 @@ class PiPowerRunner(BaseRunner):
         # Power monitor instance
         self.power_monitor: Optional[PiPowerMonitor] = None
 
+        # Blackboard for BT engine updates
+        self.blackboard = py_trees.blackboard.Client(name="SOLAR_BT_Engine")
+        self.blackboard.register_key(
+            "battery_level", access=py_trees.common.Access.WRITE
+        )
+
+        # Get battery update interval from config
+        self.battery_update_interval = self._get_config_value(
+            "battery_update_interval",
+            config.get("application", {})
+            .get("battery_safety", {})
+            .get("update_interval", 1.0),
+        )
+        self._last_battery_update = 0.0
+
     def _initialize(self) -> bool:
         """Initialize the PiPower monitor."""
         try:
@@ -97,7 +114,7 @@ class PiPowerRunner(BaseRunner):
                     "LOW BATT" if test_reading.is_low_battery else "Battery OK"
                 )
 
-            self.logger.info(
+            self.logger.debug(
                 f"{self.label} initialized successfully - "
                 f"Status: {', '.join(status_parts)}"
             )
@@ -124,9 +141,27 @@ class PiPowerRunner(BaseRunner):
             # Check conditions and generate alerts
             self._check_power_alerts(reading)
 
+            # Update BT engine blackboard with battery level if enough time has passed
+            current_time = time.time()
+            if current_time - self._last_battery_update >= self.battery_update_interval:
+                if reading.battery_voltage is not None:
+                    # Convert voltage to percentage (assuming 6.0V is 0% and 8.4V is 100%)
+                    voltage = reading.battery_voltage
+                    battery_percentage = min(
+                        100.0, max(0.0, ((voltage - 6.0) / (8.4 - 6.0)) * 100.0)
+                    )
+                    self.blackboard.battery_level = battery_percentage
+                    self._last_battery_update = current_time
+                    self.logger.debug(
+                        f"Updated BT blackboard battery level to {battery_percentage:.1f}%"
+                    )
+
         except SensorReadError as e:
             self.logger.error(f"Sensor read error in {self.label}: {e}")
             raise  # Re-raise so base class can handle it
+        except Exception as e:
+            self.logger.error(f"Unexpected error in {self.label} work cycle: {e}")
+            raise
 
     def _check_power_alerts(self, reading: PiPowerReading) -> None:
         """Check power reading conditions and generate alerts."""
@@ -226,7 +261,7 @@ class PiPowerRunner(BaseRunner):
     def _cleanup(self) -> None:
         """Cleanup PiPower-specific resources."""
         if self.power_monitor:
-            self.logger.info("Cleaning up PiPower monitor")
+            self.logger.debug("Cleaning up PiPower monitor")
             self.power_monitor.cleanup()
             self.power_monitor = None
 

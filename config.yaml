@@ -50,6 +50,15 @@ application:
   main_loop_interval: 2
   # Graceful shutdown timeout in seconds
   shutdown_timeout: 5.0
+  # Battery safety configuration
+  battery_safety:
+    # Minimum battery percentage before forcing return to dock
+    min_battery_threshold: 20.0
+    # Maximum allowed distance from dock as a factor of remaining battery
+    # e.g. 0.5 means at 50% battery, max distance is 25% of total range
+    max_distance_factor: 0.5
+    # How often to update battery level in the behavior tree (seconds)
+    update_interval: 1.0
 
 # Logging configuration
 logging:
