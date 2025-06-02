@@ -3,6 +3,7 @@ import sched  # Added sched for time-based events
 import time  # Added time for sched
 from datetime import datetime
 from pathlib import Path
+from typing import Optional
 
 import py_trees
 import yaml
@@ -12,6 +13,8 @@ import yaml
 
 
 class TimeCondition(py_trees.behaviour.Behaviour):
+    target_time: Optional[datetime.time]
+
     def __init__(self, time_str: str, name: str = "TimeCondition"):
         """
         Initialize a time condition that checks if current time has reached or passed the target time.
@@ -45,6 +48,9 @@ class TimeCondition(py_trees.behaviour.Behaviour):
 
 
 class TimeRangeCondition(py_trees.behaviour.Behaviour):
+    start_time: Optional[datetime.time]
+    end_time: Optional[datetime.time]
+
     def __init__(
         self, start_time: str, end_time: str, name: str = "TimeRangeCondition"
     ):
