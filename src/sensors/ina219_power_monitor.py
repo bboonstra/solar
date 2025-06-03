@@ -141,20 +141,44 @@ class SimulatedINA219Adapter(PowerSensorAdapter):
     def __init__(self):
         self.logger = logging.getLogger(__name__)
         self.initialize()
+        # Add state to occasionally simulate higher power draws
+        self._normal_operation = True
+        self._last_state_change = time.time()
+        self._state_duration = random.uniform(
+            30, 120
+        )  # 30s to 2min between state changes
 
     def initialize(self) -> None:
         self.logger.debug("Simulated INA219 sensor initialized.")
         # No actual hardware to initialize
 
+    def _update_operation_state(self) -> None:
+        """Update whether we're in normal or high power operation mode."""
+        current_time = time.time()
+        if current_time - self._last_state_change > self._state_duration:
+            # 90% chance of normal operation, 10% chance of high power
+            self._normal_operation = random.random() < 0.9
+            self._last_state_change = current_time
+            self._state_duration = random.uniform(30, 120)
+
     def read_voltage(self) -> float:
         # Simulate typical solar/battery voltage (12V nominal with some variation)
         base_voltage = 12.0
-        variation = random.uniform(-0.5, 0.5)
+        variation = random.uniform(-0.3, 0.3)  # Reduced variation
         return max(0.0, base_voltage + variation)
 
     def read_current_ma(self) -> float:
-        # Simulate current draw (typical robot consumption 0.5-2.0A -> 500-2000mA)
-        return random.uniform(500.0, 2000.0)
+        self._update_operation_state()
+
+        if self._normal_operation:
+            # Normal operation: 200-800mA (0.2-0.8A)
+            current = random.uniform(200.0, 800.0)
+        else:
+            # High power operation: 800-1200mA (0.8-1.2A)
+            # This will occasionally trigger high power warnings but not too frequently
+            current = random.uniform(800.0, 1200.0)
+
+        return current
 
     def read_power_mw(self) -> float:
         # Calculate simulated power from voltage and current

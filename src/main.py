@@ -27,6 +27,7 @@ Requirements:
     - See requirements.txt for dependencies
 """
 
+import argparse
 import logging
 import time
 from pathlib import Path
@@ -39,6 +40,7 @@ import yaml
 from bt_engine import BehaviorTreeEngine
 
 # Import configuration validator
+from config.paths import CONFIG_DIR, ROOT_DIR
 from config_validator import validate_configuration_files
 
 # NEW: Import RunnerManager for threaded runners
@@ -51,13 +53,26 @@ from runners.runner_manager import RunnerManager
 SCRIPT_DIR = (
     Path(__file__).parent.parent / "configuration"
 )  # Go up one level from src/ to configuration directory
+ROOT_DIR = Path(__file__).parent.parent
 
 
-def setup_logging(config: Dict[str, Any]) -> logging.Logger:
-    """Configure logging with colorized output based on configuration."""
+def setup_logging(
+    config: Dict[str, Any], log_level_override: Optional[str] = None
+) -> logging.Logger:
+    """Configure logging with colorized output based on configuration.
+
+    Args:
+        config: Configuration dictionary containing logging settings
+        log_level_override: Optional log level override from command line arguments
+    """
     # Get logging configuration with defaults
     logging_config = config.get("logging", {})
-    log_level = logging_config.get("level", "INFO").upper()
+    # Use command line override if provided, otherwise use config
+    log_level = (
+        log_level_override.upper()
+        if log_level_override
+        else logging_config.get("level", "DEBUG").upper()
+    )
     use_colors = logging_config.get("colorized", True)
 
     # Get color and format settings
@@ -137,9 +152,9 @@ def load_config() -> Dict[str, Any]:
         FileNotFoundError: If required config files are not found
         ValueError: If configuration is invalid
     """
-    solar_path = SCRIPT_DIR / "solar.yaml"
-    runners_path = SCRIPT_DIR / "runners.yaml"
-    env_path = SCRIPT_DIR / "environment.yaml"
+    solar_path = CONFIG_DIR / "solar.yaml"
+    runners_path = CONFIG_DIR / "runners.yaml"
+    env_path = CONFIG_DIR / "environment.yaml"
 
     # Validate configuration files first
     if not validate_configuration_files(solar_path, runners_path, env_path):
@@ -171,7 +186,7 @@ def load_config() -> Dict[str, Any]:
 
 def load_environment_config(logger: logging.Logger) -> bool:
     """Load environment configuration and return production flag."""
-    env_config_path = SCRIPT_DIR / "environment.yaml"
+    env_config_path = CONFIG_DIR / "environment.yaml"
     try:
         with open(env_config_path, "r") as f:
             env_config = yaml.safe_load(f)
@@ -218,9 +233,30 @@ def load_gpio_module(production: bool, logger: logging.Logger) -> Optional[Any]:
 
 def main() -> None:
     """Main application entry point with threaded runner system."""
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description="SOLAR Robot Main Application")
+    parser.add_argument("--info", action="store_true", help="Set log level to INFO")
+    parser.add_argument("--debug", action="store_true", help="Set log level to DEBUG")
+    parser.add_argument(
+        "--warning", action="store_true", help="Set log level to WARNING"
+    )
+    parser.add_argument("--error", action="store_true", help="Set log level to ERROR")
+    args = parser.parse_args()
+
+    # Determine log level override from arguments
+    log_level_override = None
+    if args.info:
+        log_level_override = "INFO"
+    elif args.debug:
+        log_level_override = "DEBUG"
+    elif args.warning:
+        log_level_override = "WARNING"
+    elif args.error:
+        log_level_override = "ERROR"
+
     # Load configuration and setup logging
     config = load_config()
-    logger = setup_logging(config)
+    logger = setup_logging(config, log_level_override)
 
     # Determine environment
     production = load_environment_config(logger)

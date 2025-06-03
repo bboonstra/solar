@@ -1,12 +1,19 @@
+"""
+Behavior Tree Engine for SOLAR Robot
+
+This module provides the behavior tree engine that controls the robot's decision-making process.
+"""
+
 import logging  # Added logging
 import sched  # Added sched for time-based events
 import time as time_module  # Renamed to avoid conflict
 from datetime import datetime
 from datetime import time as datetime_time
-from pathlib import Path
 
 import py_trees
 import yaml
+
+from config.paths import CONFIG_DIR
 
 # Placeholder for actual behavior implementations
 # These will be moved to separate files later
@@ -312,9 +319,7 @@ class BehaviorTreeEngine:
         self.logger.debug("BehaviorTreeEngine initialized")
 
     def _load_yaml_config(self, file_name: str) -> dict:
-        config_path = (
-            Path(SCRIPT_DIR) / file_name
-        )  # Assuming SCRIPT_DIR is defined in main
+        config_path = CONFIG_DIR / file_name
         try:
             with open(config_path, "r") as f:
                 return yaml.safe_load(f)
@@ -472,19 +477,6 @@ class BehaviorTreeEngine:
         self.scheduler.empty()  # Clear any pending scheduled events
         self.logger.info("Behavior Tree Engine shutdown complete.")
 
-
-# This SCRIPT_DIR needs to be accessible for _load_yaml_config
-# It's usually defined in main.py. We'll assume it's passed or globally available.
-# For now, let's define it here for standalone testing, but this should be fixed.
-# SCRIPT_DIR = Path(__file__).resolve().parent.parent
-
-# Attempt to use SCRIPT_DIR from main.py, fallback for standalone execution
-try:
-    from main import SCRIPT_DIR
-except ImportError:
-    # Fallback for standalone execution or if main.py's SCRIPT_DIR is not available at import time
-    SCRIPT_DIR = Path(__file__).resolve().parent.parent
-    # print("Warning: Using fallback SCRIPT_DIR in bt_engine.py") # Optional: for debugging
 
 if __name__ == "__main__":
     # Basic test setup for bt_engine.py

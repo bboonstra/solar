@@ -419,7 +419,7 @@ class PiPowerMonitor:
                 if reading.is_low_battery is None:
                     low_batt_str = "LowBatt N/A"
 
-                self.logger.info(
+                self.logger.debug(
                     f"PiPower Status - Voltage: {voltage_str}, {usb_str}, {charge_str}, {low_batt_str}"
                 )
             return reading

@@ -13,6 +13,7 @@ from typing import Any, Dict, Optional, Type
 from .base_runner import BaseRunner, RunnerStatus
 from .ina219_runner import INA219Runner
 from .pipower_runner import PiPowerRunner
+from .webcam_runner import WebcamRunner
 
 
 @dataclass
@@ -60,6 +61,7 @@ class RunnerManager:
         self._runner_classes: Dict[str, Type[BaseRunner]] = {
             "ina219": INA219Runner,
             "pipower": PiPowerRunner,
+            "webcam": WebcamRunner,
             # Add more runner classes here as they are developed
         }
 

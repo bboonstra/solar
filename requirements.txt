@@ -4,6 +4,7 @@
 # on dev machine (default), use:
 fake_rpi @ git+https://github.com/sn4k3/FakeRPi@0f30d320d5f715d8a4fb94e7105448508586ae94
 astroid==3.3.10
+colorlog==6.9.0
 dill==0.4.0
 isort==6.0.1
 mccabe==0.7.0
@@ -27,3 +28,4 @@ typing_extensions==4.13.2
 tzdata==2025.2
 wheel==0.45.1
 py_trees==2.3.0
+opencv-python==4.7.0.72
