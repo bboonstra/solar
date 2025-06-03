@@ -28,4 +28,4 @@ typing_extensions==4.13.2
 tzdata==2025.2
 wheel==0.45.1
 py_trees==2.3.0
-opencv-python==4.7.0.72
+opencv-python==4.8.1.78
