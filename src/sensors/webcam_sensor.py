@@ -79,11 +79,41 @@ class HardwareWebcamAdapter(WebcamAdapter):
     def initialize(self) -> None:
         try:
             self.logger.info(f"Initializing hardware webcam (ID: {self.camera_id})...")
-            self.cap = cv2.VideoCapture(self.camera_id, cv2.CAP_AVFOUNDATION)
-            if not self.cap.isOpened():
+
+            # Try different backends in sequence
+            backends = [
+                (cv2.CAP_ANY, "default"),  # Try default backend first
+                (cv2.CAP_AVFOUNDATION, "AVFoundation"),  # macOS
+                (cv2.CAP_V4L2, "V4L2"),  # Linux
+                (cv2.CAP_DSHOW, "DirectShow"),  # Windows
+            ]
+
+            last_error = None
+            for backend, backend_name in backends:
+                try:
+                    self.logger.debug(f"Trying backend: {backend_name}")
+                    self.cap = cv2.VideoCapture(self.camera_id, backend)
+                    if self.cap.isOpened():
+                        self.logger.info(
+                            f"Successfully opened webcam using {backend_name} backend"
+                        )
+                        break
+                    else:
+                        self.cap.release()
+                        self.cap = None
+                except Exception as e:
+                    last_error = e
+                    self.logger.debug(
+                        f"Failed to open webcam with backend {backend_name}: {e}"
+                    )
+                    if self.cap:
+                        self.cap.release()
+                        self.cap = None
+
+            if not self.cap or not self.cap.isOpened():
                 self.cap = None  # Ensure cap is None if not opened
                 raise SensorCaptureError(
-                    f"Cannot open webcam (ID: {self.camera_id}). Check if it is connected and not in use."
+                    f"Cannot open webcam (ID: {self.camera_id}). Check if it is connected and not in use. Last error: {last_error}"
                 )
 
             if self.resolution:
