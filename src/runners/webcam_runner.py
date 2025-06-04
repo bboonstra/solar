@@ -14,7 +14,7 @@ from sensors.webcam_sensor import (
     WebcamSensor,
 )
 
-from .base_runner import BaseRunner
+from .base_runner import BaseRunner, RunnerState
 
 
 class WebcamRunner(BaseRunner):
@@ -92,10 +92,15 @@ class WebcamRunner(BaseRunner):
 
     def is_healthy(self) -> bool:
         """Check if the WebcamRunner is healthy."""
-        if (
-            not super().is_healthy()
-        ):  # Checks basic runner health (running, not too many errors)
+        # Check basic runner state
+        if not self.is_running or self.state != RunnerState.RUNNING:
             return False
+
+        # Check error count
+        if self._error_count >= self._get_config_value("max_errors", 3):
+            return False
+
+        # Check sensor
         if not self.sensor:
             return False
 
@@ -103,12 +108,6 @@ class WebcamRunner(BaseRunner):
         if not sensor_healthy:
             self.logger.warning(f"{self.label} sensor reported as unhealthy.")
         return sensor_healthy
-
-    def get_last_capture_details(self) -> Optional[ImageReading]:
-        """Get details of the last image capture."""
-        return self._last_capture_details
-
-    def get_enhanced_status(self) -> Dict[str, Any]:
         """
         Get enhanced status information including last capture details.
         """

@@ -85,17 +85,13 @@ class AudioDevice:
                 blocksize=self.blocksize,
                 latency="low",
             )
+            # Start with a small silence buffer to prevent thump
+            silence = np.zeros(
+                (int(0.1 * self.sample_rate), self.channels), dtype=np.float32
+            )
             self._stream.start()
+            self._stream.write(silence)  # Write silence to initialize the stream
             self.logger.info("Audio device initialized successfully")
-
-            if self.production:
-                try:
-                    with self._audio_lock:
-                        jingle = self._generate_boot_jingle()
-                        self._stream.write(jingle)
-                except Exception as e:
-                    self.logger.warning(f"Could not play boot jingle: {e}")
-
             return True
         except Exception as e:
             self.logger.error(f"Failed to initialize audio device: {e}")

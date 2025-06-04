@@ -168,3 +168,20 @@ class AudioRunner(BaseRunner):
                 self._notification_queue.task_done()
             except queue.Empty:
                 break
+
+    def play_boot_jingle(self) -> bool:
+        """
+        Play the boot jingle through the audio device.
+
+        Returns:
+            bool: True if the jingle was played successfully, False otherwise
+        """
+        if not self.audio_device:
+            self.logger.error(f"{self.label} not initialized")
+            return False
+
+        try:
+            return self.audio_device.play_boot_jingle()
+        except Exception as e:
+            self.logger.error(f"Error playing boot jingle: {e}")
+            return False

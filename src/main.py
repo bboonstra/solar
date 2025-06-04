@@ -42,6 +42,7 @@ from bt_engine import BehaviorTreeEngine
 # Import configuration validator
 from config.paths import CONFIG_DIR, ROOT_DIR
 from config_validator import validate_configuration_files
+from runners.audio_runner import AudioRunner  # Add import for AudioRunner
 
 # NEW: Import RunnerManager for threaded runners
 from runners.runner_manager import RunnerManager
@@ -278,6 +279,15 @@ def main() -> None:
         logger.critical("Failed to start RunnerManager. Exiting.")
         return
     logger.info("RunnerManager started successfully.")
+
+    audio_runner = runner_manager.get_runner("audio")
+    if audio_runner and isinstance(audio_runner, AudioRunner):
+        audio_runner.play_boot_jingle()
+        logger.info("Boot jingle played successfully")
+    else:
+        logger.warning(
+            "Audio runner not found or not properly initialized, skipping boot jingle"
+        )
 
     # Initialize and run the Behavior Tree Engine
     bt_engine = BehaviorTreeEngine(config, production)
