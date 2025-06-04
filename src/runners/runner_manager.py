@@ -10,6 +10,7 @@ import time
 from dataclasses import dataclass
 from typing import Any, Dict, Optional, Type
 
+from .audio_runner import AudioRunner
 from .base_runner import BaseRunner, RunnerStatus
 from .ina219_runner import INA219Runner
 from .pipower_runner import PiPowerRunner
@@ -62,6 +63,7 @@ class RunnerManager:
             "ina219": INA219Runner,
             "pipower": PiPowerRunner,
             "webcam": WebcamRunner,
+            "audio": AudioRunner,
             # Add more runner classes here as they are developed
         }
 
