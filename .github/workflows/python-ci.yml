@@ -33,6 +33,7 @@ jobs:
 
       - name: Install dependencies
         run: |
+          sudo apt-get update && sudo apt-get install -y portaudio19-dev
           python -m pip install --upgrade pip
           pip install flake8 black isort mypy pylint
           pip install -r requirements.txt
@@ -77,6 +78,7 @@ jobs:
 
       - name: Install dependencies
         run: |
+          sudo apt-get update && sudo apt-get install -y portaudio19-dev
           python -m pip install --upgrade pip
           pip install pytest pytest-cov pytest-mock
           pip install -r requirements.txt
